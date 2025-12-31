@@ -1024,17 +1024,14 @@ ToggleButton.MouseButton1Click:Connect(function()
                                 
                                 if Flag1 then
                                     -- Collect remotely without teleporting
-                                    local Descendant1, Descendant2, Descendant3 = ipairs(Orb3:GetDescendants())
-                                    while true do
-                                        local UtilityObject
-                                        Descendant3, UtilityObject = Descendant1(Descendant2, Descendant3)
-                                        if Descendant3 == nil then
-                                            break
-                                        end
+                                    for _, UtilityObject in ipairs(Orb3:GetDescendants()) do
                                         if UtilityObject:IsA("ProximityPrompt") then
-                                            pcall(function()
-                                                fireproximityprompt(UtilityObject, 1)
-                                            end)
+                                            UtilityObject.MaxActivationDistance = 100
+                                            if HumanoidRootPart and (UtilityObject.Parent.Position - HumanoidRootPart.Position).Magnitude <= UtilityObject.MaxActivationDistance then
+                                                pcall(function()
+                                                    fireproximityprompt(UtilityObject, 1)
+                                                end)
+                                            end
                                         end
                                     end
                                 end
@@ -1428,9 +1425,12 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                 if hasSelectedVariant then
                                     for _, UtilityObject in ipairs(Orb3:GetDescendants()) do
                                         if UtilityObject:IsA("ProximityPrompt") then
-                                            pcall(function()
-                                                fireproximityprompt(UtilityObject, 1)
-                                            end)
+                                            UtilityObject.MaxActivationDistance = 100
+                                            if HumanoidRootPart and (UtilityObject.Parent.Position - HumanoidRootPart.Position).Magnitude <= UtilityObject.MaxActivationDistance then
+                                                pcall(function()
+                                                    fireproximityprompt(UtilityObject, 1)
+                                                end)
+                                            end
                                         end
                                     end
                                 end

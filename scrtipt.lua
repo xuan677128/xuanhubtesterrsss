@@ -860,6 +860,8 @@ end
 
 -- Create mutation checkboxes
 local MutationCheckboxes = {}
+local ExcludedMutations = {} -- Track excluded mutations
+
 for _, mutationName in ipairs(AllMutations) do
     local checkboxFrame = Instance.new("Frame")
     checkboxFrame.Size = UDim2.new(1, -10, 0, 25)
@@ -915,6 +917,26 @@ for _, mutationName in ipairs(AllMutations) do
             if data.Selected then
                 table.insert(EmptyTable3, name)
             end
+        end
+    end)
+    
+    -- Right-click to exclude mutation
+    checkbox.MouseButton2Click:Connect(function()
+        if table.find(ExcludedMutations, mutationName) then
+            -- Remove from excluded
+            for i, name in ipairs(ExcludedMutations) do
+                if name == mutationName then
+                    table.remove(ExcludedMutations, i)
+                    checkboxFrame.BackgroundColor3 = THEME.Sidebar
+                    notify(mutationName .. " no longer excluded", Color3.fromRGB(138, 43, 226))
+                    break
+                end
+            end
+        else
+            -- Add to excluded
+            table.insert(ExcludedMutations, mutationName)
+            checkboxFrame.BackgroundColor3 = Color3.fromRGB(80, 20, 20) -- Dark red
+            notify(mutationName .. " excluded from collection", Color3.fromRGB(220, 60, 60))
         end
     end)
 end
@@ -996,7 +1018,7 @@ ToggleButton.MouseButton1Click:Connect(function()
                                     if descendant:IsA("Folder") or descendant:IsA("Model") then
                                         -- Check if this is a mutation marker
                                         for mutationName, _ in pairs(_G.MutationEnums) do
-                                            if descendant.Name:find(mutationName) then
+                                            if descendant.Name:find(mutationName) and not table.find(ExcludedMutations, mutationName) then
                                                 mutationCount = mutationCount + 1
                                                 break
                                             end
@@ -1010,7 +1032,7 @@ ToggleButton.MouseButton1Click:Connect(function()
                                     for _, variantDesc in ipairs(Variant1:GetDescendants()) do
                                         if variantDesc:IsA("Folder") or variantDesc:IsA("Model") then
                                             for mutationName, _ in pairs(_G.MutationEnums) do
-                                                if variantDesc.Name:find(mutationName) then
+                                                if variantDesc.Name:find(mutationName) and not table.find(ExcludedMutations, mutationName) then
                                                     mutationCount = mutationCount + 1
                                                     break
                                                 end
@@ -1155,6 +1177,7 @@ MagpieCheckboxLayout.Parent = MagpieCheckboxFrame
 -- Dynamically create checkboxes for all variants
 local MagpieCheckboxes = {}
 local MagpieSelectedVariants = {}
+local ExcludedVariants = {} -- Track excluded variants
 
 for _, variantName in ipairs(AllVariants) do
     local checkboxFrame = Instance.new("Frame")
@@ -1211,6 +1234,26 @@ for _, variantName in ipairs(AllVariants) do
             if data.Selected then
                 table.insert(MagpieSelectedVariants, name)
             end
+        end
+    end)
+    
+    -- Right-click to exclude variant
+    checkbox.MouseButton2Click:Connect(function()
+        if table.find(ExcludedVariants, variantName) then
+            -- Remove from excluded
+            for i, name in ipairs(ExcludedVariants) do
+                if name == variantName then
+                    table.remove(ExcludedVariants, i)
+                    checkboxFrame.BackgroundColor3 = THEME.Sidebar
+                    notify(variantName .. " no longer excluded", Color3.fromRGB(255, 215, 0))
+                    break
+                end
+            end
+        else
+            -- Add to excluded
+            table.insert(ExcludedVariants, variantName)
+            checkboxFrame.BackgroundColor3 = Color3.fromRGB(80, 40, 0) -- Dark orange
+            notify(variantName .. " excluded from collection", Color3.fromRGB(220, 60, 60))
         end
     end)
 end
@@ -1415,7 +1458,7 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                 if Variant1 then
                                     -- Check if Variant folder itself has the variant name
                                     for _, targetVariant in ipairs(MagpieSelectedVariants) do
-                                        if Variant1.Name:find(targetVariant) then
+                                        if Variant1.Name:find(targetVariant) and not table.find(ExcludedVariants, targetVariant) then
                                             hasSelectedVariant = true
                                             break
                                         end
@@ -1425,7 +1468,7 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                     if not hasSelectedVariant then
                                         for _, variantDesc in ipairs(Variant1:GetDescendants()) do
                                             for _, targetVariant in ipairs(MagpieSelectedVariants) do
-                                                if variantDesc.Name:find(targetVariant) or variantDesc.Name == targetVariant then
+                                                if (variantDesc.Name:find(targetVariant) or variantDesc.Name == targetVariant) and not table.find(ExcludedVariants, targetVariant) then
                                                     hasSelectedVariant = true
                                                     break
                                                 end
@@ -1438,7 +1481,7 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                     if not hasSelectedVariant then
                                         for _, variantChild in ipairs(Variant1:GetChildren()) do
                                             for _, targetVariant in ipairs(MagpieSelectedVariants) do
-                                                if variantChild.Name:find(targetVariant) or variantChild.Name == targetVariant then
+                                                if (variantChild.Name:find(targetVariant) or variantChild.Name == targetVariant) and not table.find(ExcludedVariants, targetVariant) then
                                                     hasSelectedVariant = true
                                                     break
                                                 end
@@ -1453,7 +1496,7 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                     for _, descendant in ipairs(Orb3:GetDescendants()) do
                                         if descendant:IsA("Folder") or descendant:IsA("Model") then
                                             for _, targetVariant in ipairs(MagpieSelectedVariants) do
-                                                if descendant.Name:find(targetVariant) or descendant.Name == targetVariant then
+                                                if (descendant.Name:find(targetVariant) or descendant.Name == targetVariant) and not table.find(ExcludedVariants, targetVariant) then
                                                     hasSelectedVariant = true
                                                     break
                                                 end
@@ -1508,7 +1551,7 @@ MagpieMethodBtn.MouseButton1Click:Connect(function()
         MutationContainer.Visible = false
         pantherExpanded = false
         MagpieContainer.Visible = true
-        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 455)}):Play()
+        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 385)}):Play()
         notify("Magpie Method Activated!", Color3.fromRGB(255, 215, 0))
     else
         TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()

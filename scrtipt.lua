@@ -1052,6 +1052,10 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- State variables for method toggles
+local pantherExpanded = false
+local magpieExpanded = false
+
 -- Panther Back Button functionality
 PantherBackBtn.MouseButton1Click:Connect(function()
     pantherExpanded = false
@@ -1062,7 +1066,6 @@ PantherBackBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Panther Method Button Toggle
-local pantherExpanded = false
 PantherMethodBtn.MouseButton1Click:Connect(function()
     pantherExpanded = not pantherExpanded
     if pantherExpanded then
@@ -1440,7 +1443,6 @@ MagpieBackBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Magpie Method Button Toggle
-local magpieExpanded = false
 MagpieMethodBtn.MouseButton1Click:Connect(function()
     magpieExpanded = not magpieExpanded
     if magpieExpanded then

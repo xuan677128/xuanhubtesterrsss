@@ -1368,7 +1368,7 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                         local Fruits1 = Plant1:FindFirstChild("Fruits")
                         if Fruits1 then
                             for _, Orb3 in ipairs(Fruits1:GetChildren()) do
-                                -- Check if fruit has any selected variant mutations
+                                -- Check if fruit has any selected variant mutations or regular mutations
                                 local hasSelectedVariant = false
                                 
                                 -- Check Variant folder for selected variants
@@ -1409,7 +1409,22 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                     end
                                 end
                                 
-                                -- Collect if has selected variant
+                                -- If no variant found, check for regular mutations (Rainbow, Gold, Silver)
+                                if not hasSelectedVariant then
+                                    for _, descendant in ipairs(Orb3:GetDescendants()) do
+                                        if descendant:IsA("Folder") or descendant:IsA("Model") then
+                                            for _, targetVariant in ipairs(MagpieSelectedVariants) do
+                                                if descendant.Name:find(targetVariant) or descendant.Name == targetVariant then
+                                                    hasSelectedVariant = true
+                                                    break
+                                                end
+                                            end
+                                            if hasSelectedVariant then break end
+                                        end
+                                    end
+                                end
+                                
+                                -- Collect if has selected variant or mutation
                                 if hasSelectedVariant then
                                     for _, UtilityObject in ipairs(Orb3:GetDescendants()) do
                                         if UtilityObject:IsA("ProximityPrompt") then

@@ -805,28 +805,44 @@ MutationListLayout.Padding = UDim.new(0, 5)
 MutationListLayout.Parent = MutationScrollFrame
 
 -- Dynamically get all mutations from MutationHandler
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MutationHandler = require(ReplicatedStorage.Modules.MutationHandler)
-local MutationEnums = MutationHandler:GetMutationsToEnums()
-
 local AllMutations = {}
-for Name, _ in pairs(MutationEnums) do
-    table.insert(AllMutations, Name)
-end
-
-_G.MutationEnums = MutationEnums
-_G.MutationNames = AllMutations
-
--- Dynamically get all variants from MutationHandler
-local VariantsEnums = MutationHandler:GetVariantsToEnums()
-
 local AllVariants = {}
-for Name, _ in pairs(VariantsEnums) do
-    table.insert(AllVariants, Name)
+local MutationEnums = {}
+local VariantsEnums = {}
+
+pcall(function()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local MutationHandler = require(ReplicatedStorage.Modules.MutationHandler)
+    MutationEnums = MutationHandler:GetMutationsToEnums()
+
+    for Name, _ in pairs(MutationEnums) do
+        table.insert(AllMutations, Name)
+    end
+
+    _G.MutationEnums = MutationEnums
+    _G.MutationNames = AllMutations
+
+    -- Dynamically get all variants from MutationHandler
+    VariantsEnums = MutationHandler:GetVariantsToEnums()
+
+    for Name, _ in pairs(VariantsEnums) do
+        table.insert(AllVariants, Name)
+    end
+
+    _G.VariantsEnums = VariantsEnums
+    _G.VariantNames = AllVariants
+end)
+
+-- Fallback if MutationHandler not found
+if #AllMutations == 0 then
+    AllMutations = {"Rainbow", "Gold", "Silver", "Diamond"}
+    warn("MutationHandler not found, using fallback mutations")
 end
 
-_G.VariantsEnums = VariantsEnums
-_G.VariantNames = AllVariants
+if #AllVariants == 0 then
+    AllVariants = {"Normal", "Rainbow", "Gold", "Silver"}
+    warn("MutationHandler not found, using fallback variants")
+end
 
 -- Create mutation checkboxes
 local MutationCheckboxes = {}
@@ -1875,8 +1891,9 @@ end
 -- Register Tabs
 tabs["AutoExec"] = { Button = createTabButton("AutoExec", 0), Page = AutoExecPage }
 tabs["Scripts"] = { Button = createTabButton("Scripts", 1), Page = ScriptsPage }
-tabs["Settings"] = { Button = createTabButton("Settings", 2), Page = SettingsPage }
-tabs["About"] = { Button = createTabButton("About", 3), Page = AboutPage }
+tabs["GrowGarden"] = { Button = createTabButton("Grow Garden", 2), Page = GrowGardenPage }
+tabs["Settings"] = { Button = createTabButton("Settings", 3), Page = SettingsPage }
+tabs["About"] = { Button = createTabButton("About", 4), Page = AboutPage }
 
 -- Button Events
 tabs["AutoExec"].Button.MouseButton1Click:Connect(function() 
@@ -1887,6 +1904,7 @@ tabs["Scripts"].Button.MouseButton1Click:Connect(function()
     switchTab("Scripts") 
     refreshScripts()
 end)
+tabs["GrowGarden"].Button.MouseButton1Click:Connect(function() switchTab("GrowGarden") end)
 tabs["Settings"].Button.MouseButton1Click:Connect(function() switchTab("Settings") end)
 tabs["About"].Button.MouseButton1Click:Connect(function() switchTab("About") end)
 

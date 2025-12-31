@@ -777,6 +777,20 @@ MutationLayout.Padding = UDim.new(0, 10)
 MutationLayout.Parent = MutationContainer
 MutationLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- Panther Back Button
+local PantherBackBtn = Instance.new("TextButton")
+PantherBackBtn.Size = UDim2.new(1, -20, 0, 35)
+PantherBackBtn.BackgroundColor3 = THEME.Sidebar
+PantherBackBtn.Text = "← Back"
+PantherBackBtn.TextColor3 = Color3.fromRGB(138, 43, 226)
+PantherBackBtn.Font = Enum.Font.GothamBold
+PantherBackBtn.TextSize = 14
+PantherBackBtn.Parent = MutationContainer
+
+local PantherBackCorner = Instance.new("UICorner")
+PantherBackCorner.CornerRadius = UDim.new(0, 6)
+PantherBackCorner.Parent = PantherBackBtn
+
 -- Mutation Dropdown Label
 local MutationLabel = Instance.new("TextLabel")
 MutationLabel.Size = UDim2.new(1, -20, 0, 30)
@@ -1038,6 +1052,15 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Panther Back Button functionality
+PantherBackBtn.MouseButton1Click:Connect(function()
+    pantherExpanded = false
+    TweenService:Create(MutationContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+    task.wait(0.3)
+    MutationContainer.Visible = false
+    notify("Panther Method Closed", Color3.fromRGB(138, 43, 226))
+end)
+
 -- Panther Method Button Toggle
 local pantherExpanded = false
 PantherMethodBtn.MouseButton1Click:Connect(function()
@@ -1046,7 +1069,7 @@ PantherMethodBtn.MouseButton1Click:Connect(function()
         MagpieContainer.Visible = false
         magpieExpanded = false
         MutationContainer.Visible = true
-        TweenService:Create(MutationContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 400)}):Play()
+        TweenService:Create(MutationContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 445)}):Play()
         notify("Panther Method Activated!", Color3.fromRGB(138, 43, 226))
     else
         TweenService:Create(MutationContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
@@ -1085,6 +1108,20 @@ local MagpieLayout = Instance.new("UIListLayout")
 MagpieLayout.Padding = UDim.new(0, 10)
 MagpieLayout.Parent = MagpieContainer
 MagpieLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Magpie Back Button
+local MagpieBackBtn = Instance.new("TextButton")
+MagpieBackBtn.Size = UDim2.new(1, -20, 0, 35)
+MagpieBackBtn.BackgroundColor3 = THEME.Sidebar
+MagpieBackBtn.Text = "← Back"
+MagpieBackBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+MagpieBackBtn.Font = Enum.Font.GothamBold
+MagpieBackBtn.TextSize = 14
+MagpieBackBtn.Parent = MagpieContainer
+
+local MagpieBackCorner = Instance.new("UICorner")
+MagpieBackCorner.CornerRadius = UDim.new(0, 6)
+MagpieBackCorner.Parent = MagpieBackBtn
 
 -- Magpie Label
 local MagpieLabel = Instance.new("TextLabel")
@@ -1334,10 +1371,32 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                 -- Check Variant folder for selected variants
                                 local Variant1 = Orb3:FindFirstChild("Variant")
                                 if Variant1 then
-                                    for _, variantDesc in ipairs(Variant1:GetDescendants()) do
-                                        if variantDesc:IsA("Folder") or variantDesc:IsA("Model") then
+                                    -- Check if Variant folder itself has the variant name
+                                    for _, targetVariant in ipairs(MagpieSelectedVariants) do
+                                        if Variant1.Name:find(targetVariant) then
+                                            hasSelectedVariant = true
+                                            break
+                                        end
+                                    end
+                                    
+                                    -- Also check descendants in Variant folder
+                                    if not hasSelectedVariant then
+                                        for _, variantDesc in ipairs(Variant1:GetDescendants()) do
                                             for _, targetVariant in ipairs(MagpieSelectedVariants) do
                                                 if variantDesc.Name:find(targetVariant) or variantDesc.Name == targetVariant then
+                                                    hasSelectedVariant = true
+                                                    break
+                                                end
+                                            end
+                                            if hasSelectedVariant then break end
+                                        end
+                                    end
+                                    
+                                    -- Also check Variant folder children directly
+                                    if not hasSelectedVariant then
+                                        for _, variantChild in ipairs(Variant1:GetChildren()) do
+                                            for _, targetVariant in ipairs(MagpieSelectedVariants) do
+                                                if variantChild.Name:find(targetVariant) or variantChild.Name == targetVariant then
                                                     hasSelectedVariant = true
                                                     break
                                                 end
@@ -1371,6 +1430,15 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Magpie Back Button functionality
+MagpieBackBtn.MouseButton1Click:Connect(function()
+    magpieExpanded = false
+    TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+    task.wait(0.3)
+    MagpieContainer.Visible = false
+    notify("Magpie Method Closed", Color3.fromRGB(255, 215, 0))
+end)
+
 -- Magpie Method Button Toggle
 local magpieExpanded = false
 MagpieMethodBtn.MouseButton1Click:Connect(function()
@@ -1379,7 +1447,7 @@ MagpieMethodBtn.MouseButton1Click:Connect(function()
         MutationContainer.Visible = false
         pantherExpanded = false
         MagpieContainer.Visible = true
-        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 340)}):Play()
+        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 385)}):Play()
         notify("Magpie Method Activated!", Color3.fromRGB(255, 215, 0))
     else
         TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()

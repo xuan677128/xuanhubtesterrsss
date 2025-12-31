@@ -1215,6 +1215,46 @@ for _, variantName in ipairs(AllVariants) do
     end)
 end
 
+-- Manual Variant Input (Fallback)
+local ManualVariantLabel = Instance.new("TextLabel")
+ManualVariantLabel.Size = UDim2.new(1, -20, 0, 25)
+ManualVariantLabel.BackgroundTransparency = 1
+ManualVariantLabel.Text = "Manual Variants (comma-separated):"
+ManualVariantLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+ManualVariantLabel.Font = Enum.Font.GothamBold
+ManualVariantLabel.TextSize = 12
+ManualVariantLabel.TextXAlignment = Enum.TextXAlignment.Left
+ManualVariantLabel.Parent = MagpieContainer
+
+local ManualVariantInput = Instance.new("TextBox")
+ManualVariantInput.Size = UDim2.new(1, -20, 0, 35)
+ManualVariantInput.BackgroundColor3 = THEME.Background
+ManualVariantInput.PlaceholderText = "e.g., Rainbow, Gold, Silver"
+ManualVariantInput.Text = ""
+ManualVariantInput.TextColor3 = THEME.Text
+ManualVariantInput.Font = Enum.Font.Gotham
+ManualVariantInput.TextSize = 12
+ManualVariantInput.ClearTextOnFocus = false
+ManualVariantInput.Parent = MagpieContainer
+
+local ManualVariantCorner = Instance.new("UICorner")
+ManualVariantCorner.CornerRadius = UDim.new(0, 6)
+ManualVariantCorner.Parent = ManualVariantInput
+
+-- Update selected variants when manual input changes
+ManualVariantInput.FocusLost:Connect(function()
+    if ManualVariantInput.Text ~= "" then
+        local manualVariants = string.split(ManualVariantInput.Text, ",")
+        for _, variantStr in ipairs(manualVariants) do
+            local trimmed = variantStr:match("^%s*(.-)%s*$") -- Trim whitespace
+            if trimmed and trimmed ~= "" and not table.find(MagpieSelectedVariants, trimmed) then
+                table.insert(MagpieSelectedVariants, trimmed)
+            end
+        end
+        notify("Manual variants added: " .. ManualVariantInput.Text, Color3.fromRGB(255, 215, 0))
+    end
+end)
+
 -- Magpie Toggle
 local MagpieToggleContainer = Instance.new("Frame")
 MagpieToggleContainer.Size = UDim2.new(1, -20, 0, 40)
@@ -1468,7 +1508,7 @@ MagpieMethodBtn.MouseButton1Click:Connect(function()
         MutationContainer.Visible = false
         pantherExpanded = false
         MagpieContainer.Visible = true
-        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 385)}):Play()
+        TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 455)}):Play()
         notify("Magpie Method Activated!", Color3.fromRGB(255, 215, 0))
     else
         TweenService:Create(MagpieContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()

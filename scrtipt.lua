@@ -1026,10 +1026,12 @@ ToggleButton.MouseButton1Click:Connect(function()
                                     -- Collect remotely without teleporting
                                     for _, UtilityObject in ipairs(Orb3:GetDescendants()) do
                                         if UtilityObject:IsA("ProximityPrompt") then
-                                            UtilityObject.MaxActivationDistance = 100
-                                            if HumanoidRootPart and (UtilityObject.Parent.Position - HumanoidRootPart.Position).Magnitude <= UtilityObject.MaxActivationDistance then
+                                            local fruitPivot = Orb3.GetPivot and Orb3:GetPivot().Position or Orb3:GetModelCFrame().Position
+                                            local charPivot = GetImportantDataFunc() and GetImportantDataFunc():GetPivot().Position
+                                            if charPivot and (fruitPivot - charPivot).Magnitude < 150 then
                                                 pcall(function()
-                                                    fireproximityprompt(UtilityObject, 1)
+                                                    fireproximityprompt(UtilityObject)
+                                                    task.wait(0.01)
                                                 end)
                                             end
                                         end
@@ -1425,10 +1427,12 @@ MagpieToggleButton.MouseButton1Click:Connect(function()
                                 if hasSelectedVariant then
                                     for _, UtilityObject in ipairs(Orb3:GetDescendants()) do
                                         if UtilityObject:IsA("ProximityPrompt") then
-                                            UtilityObject.MaxActivationDistance = 100
-                                            if HumanoidRootPart and (UtilityObject.Parent.Position - HumanoidRootPart.Position).Magnitude <= UtilityObject.MaxActivationDistance then
+                                            local fruitPivot = Orb3.GetPivot and Orb3:GetPivot().Position or Orb3:GetModelCFrame().Position
+                                            local charPivot = GetImportantDataFunc() and GetImportantDataFunc():GetPivot().Position
+                                            if charPivot and (fruitPivot - charPivot).Magnitude < 150 then
                                                 pcall(function()
-                                                    fireproximityprompt(UtilityObject, 1)
+                                                    fireproximityprompt(UtilityObject)
+                                                    task.wait(0.01)
                                                 end)
                                             end
                                         end

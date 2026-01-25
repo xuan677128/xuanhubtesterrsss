@@ -987,7 +987,7 @@ UtilitiesSection:Toggle({
 -- God Mode
 UtilitiesSection:Toggle({
 	Title = "God Mode",
-	Desc = "Make your character invulnerable and immobile for safe teleporting",
+	Desc = "Immune To the tsunami for one time or for more than 3 waves if the tsunami is close to each other",
 	Value = savedSettings.godMode,
 	Callback = function(state)
 		if state then

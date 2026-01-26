@@ -378,7 +378,7 @@ local DropdownOpen = false
 -- Auto Feed Pets variables
 local AutoFeedPetsEnabled = false
 local AutoFeedPetsThread = nil
-local feedInterval = 5 -- seconds between feed attempts
+local feedInterval = 3 -- seconds between feed attempts (slower to avoid spamming)
 local feedFruits = {
     "Buttercup",
     "Tomato",
@@ -419,6 +419,9 @@ local function startAutoFeedPets()
             local humanoid = character and character:FindFirstChild("Humanoid")
             local backpack = player:FindFirstChild("Backpack")
             if humanoid and backpack and feedEvent then
+                -- ensure each pet is fed at most once per cycle
+                local fedThisRound = {}
+
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if tool:IsA("Tool") and tool:GetAttribute("b") == "j" then
                         local tname = tool.Name:lower()
@@ -436,8 +439,9 @@ local function startAutoFeedPets()
                             for _, petMover in ipairs(workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:GetChildren() or {}) do
                                 if petMover:GetAttribute("OWNER") == player.Name then
                                     local petUUID = petMover:GetAttribute("UUID")
-                                    if petUUID then
+                                    if petUUID and not fedThisRound[petUUID] then
                                         pcall(function() feedEvent:FireServer("Feed", petUUID) end)
+                                        fedThisRound[petUUID] = true
                                     end
                                 end
                             end

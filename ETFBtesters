@@ -87,7 +87,10 @@ local Window = WindUI:CreateWindow({
 	OutlineThickness = 3,
     Resizable = true,
     Transparent = true,
-    Window.Icon:Enable()
+    User = {
+        Enabled = true,
+        Anonymous = false,
+    },
 })
 
 

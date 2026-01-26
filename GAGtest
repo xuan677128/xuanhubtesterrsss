@@ -99,57 +99,16 @@ MethodsSection:Button({
     Title = "Info",
     Desc = "Auto Magpie usage instructions",
     Callback = function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Auto Magpie Instructions";
-            Text = "Place the pet 1st: 3 mimic, 3 squid, 1 cocktrice and 1 magpie before use this";
-            Duration = 8;
+        WindUI:Notify({
+            Title = "Auto Magpie Instructions",
+            Content = "Place the pet 1st: 3 mimic, 3 squid, 1 cocktrice and 1 magpie before use this",
+            Icon = "info",
+            Duration = 8,
         })
     end
 })
 
-MethodsSection:Toggle({
-    Title = "Auto Magpie",
-    Desc = "Automatically collect fruits (uses script logic)",
-    Value = false,
-    Callback = function(state)
-        AutoMagpieEnabled = state
-        if state then
-            if AutoMagpieThread then task.cancel(AutoMagpieThread) end
-            AutoMagpieThread = task.spawn(function()
-                while AutoMagpieEnabled do
-                    if RapidCollectEnabled then
-                        _FruitCollectorMachine.CollectFruitByNamesBatchMode(nil, 30)
-                    else
-                        _FruitCollectorMachine.CollectOneFruit()
-                    end
-                    task.wait()
-                end
-            end)
-        else
-            if AutoMagpieThread then task.cancel(AutoMagpieThread); AutoMagpieThread = nil end
-        end
-    end
-})
-
-MethodsSection:Toggle({ Title = "Rapid Collect", Desc = "Collect rapidly (batch)", Value = false, Callback = function(state) RapidCollectEnabled = state end })
-MethodsSection:Toggle({ Title = "Allow Sell when Full", Desc = "Automatically sell when backpack is full", Value = false, Callback = function(state) AllowSellEnabled = state end })
-MethodsSection:Toggle({ Title = "Variant Collect", Desc = "Collect only variant fruits", Value = false, Callback = function(state) VariantCollectEnabled = state end })
-MethodsSection:Toggle({ Title = "Show Event Time", Desc = "Show in-game event time UI", Value = false, Callback = function(state)
-        if not screengui_693 then
-            -- create small Surface Preview GUI on demand
-            screengui_693 = Instance.new("ScreenGui")
-            screengui_693.Name = "SurfacePreview"
-            screengui_693.ResetOnSpawn = false
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.fromScale(0.12, 0.12)
-            frame.AnchorPoint = Vector2.new(1, 1)
-            frame.Position = UDim2.fromScale(0.98, 0.98)
-            frame.BackgroundTransparency = 1
-            frame.Parent = screengui_693
-            screengui_693.Parent = player:WaitForChild("PlayerGui")
-        end
-        if screengui_693 then screengui_693.Enabled = state end
-    end })
+-- Methods toggles moved below (placed near Auto Magpie variables for correct ordering)
 
 -- Make sure we still remove any previous legacy GUI (keeps file safe)
 pcall(function()
@@ -414,6 +373,74 @@ local VariantCollectEnabled = false
 local RapidCollectEnabled = false
 local AutoMagpieThread = nil
 local DropdownOpen = false
+
+-- Methods toggles (moved here so functions & vars exist when callbacks run)
+MethodsSection:Toggle({
+    Title = "Auto Magpie",
+    Desc = "Automatically collect fruits (uses script logic)",
+    Value = false,
+    Callback = function(state)
+        AutoMagpieEnabled = state
+        if state then
+            if AutoMagpieThread then task.cancel(AutoMagpieThread) end
+            AutoMagpieThread = task.spawn(function()
+                while AutoMagpieEnabled do
+                    if RapidCollectEnabled then
+                        _FruitCollectorMachine.CollectFruitByNamesBatchMode(nil, 30)
+                    else
+                        _FruitCollectorMachine.CollectOneFruit()
+                    end
+                    task.wait()
+                end
+            end)
+        else
+            if AutoMagpieThread then task.cancel(AutoMagpieThread); AutoMagpieThread = nil end
+        end
+    end
+})
+
+MethodsSection:Toggle({
+    Title = "Rapid Collect",
+    Desc = "Collect rapidly (batch)",
+    Value = false,
+    Callback = function(state) RapidCollectEnabled = state end
+})
+
+MethodsSection:Toggle({
+    Title = "Allow Sell when Full",
+    Desc = "Automatically sell when backpack is full",
+    Value = false,
+    Callback = function(state) AllowSellEnabled = state end
+})
+
+MethodsSection:Toggle({
+    Title = "Variant Collect",
+    Desc = "Collect only variant fruits",
+    Value = false,
+    Callback = function(state) VariantCollectEnabled = state end
+})
+
+MethodsSection:Toggle({
+    Title = "Show Event Time",
+    Desc = "Show in-game event time UI",
+    Value = false,
+    Callback = function(state)
+        if not screengui_693 then
+            -- create small Surface Preview GUI on demand
+            screengui_693 = Instance.new("ScreenGui")
+            screengui_693.Name = "SurfacePreview"
+            screengui_693.ResetOnSpawn = false
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.fromScale(0.12, 0.12)
+            frame.AnchorPoint = Vector2.new(1, 1)
+            frame.Position = UDim2.fromScale(0.98, 0.98)
+            frame.BackgroundTransparency = 1
+            frame.Parent = screengui_693
+            screengui_693.Parent = player:WaitForChild("PlayerGui")
+        end
+        if screengui_693 then screengui_693.Enabled = state end
+    end
+})
 
 -- Info Button Click
 -- legacy info button removed (WindUI provides same info via MethodsSection:Button)

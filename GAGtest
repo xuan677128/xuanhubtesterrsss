@@ -502,17 +502,17 @@ local function stopRapidCollect()
 end
 
 MethodsSection:Toggle({
-    Title = "Rapid Collect",
-    Desc = "Collect rapidly (batch)",
+    Title = "Auto Collect Variant Fruit",
+    Desc = "Collect fruit with variant",
     Value = false,
     Callback = function(state)
         RapidCollectEnabled = state
         if state then
             startRapidCollect()
-            WindUI:Notify({ Title = "Rapid Collect", Content = "Enabled", Icon = "check", Duration = 2 })
+            WindUI:Notify({ Title = "Auto Collect Variant Fruit", Content = "Enabled", Icon = "check", Duration = 2 })
         else
             stopRapidCollect()
-            WindUI:Notify({ Title = "Rapid Collect", Content = "Disabled", Icon = "check", Duration = 2 })
+            WindUI:Notify({ Title = "Auto Collect Variant Frui", Content = "Disabled", Icon = "check", Duration = 2 })
         end
     end
 })
@@ -525,61 +525,7 @@ MethodsSection:Toggle({
 })
 
 
-MethodsSection:Toggle({
-    Title = "Auto Collcect Variant Collect",
-    Desc = "Collect only variant fruits",
-    Value = false,
-    Callback = function(state)
-        AutoMagpieEnabled = state
-        if state then
-            startAutoMagpie()
-            WindUI:Notify({ Title = "Auto Collcect Variant Collect", Content = "Enabled", Icon = "check", Duration = 2 })
-        else
-            stopAutoMagpie()
-            WindUI:Notify({ Title = "Auto Collcect Variant Collect", Content = "Disabled", Icon = "check", Duration = 2 })
-        end
-    end
-})
 
--- Auto Magpie: collect variant fruits automatically
-local function startAutoMagpie()
-    if AutoMagpieThread then return end
-    AutoMagpieThread = task.spawn(function()
-        while AutoMagpieEnabled do
-            if FarmManager.mFarm then
-                pcall(function()
-                    _FruitCollectorMachine.CollectVariantsBatch(12)
-                end)
-            end
-            task.wait(1.2)
-        end
-        AutoMagpieThread = nil
-    end)
-end
-
-local function stopAutoMagpie()
-    AutoMagpieEnabled = false
-    if AutoMagpieThread then
-        task.cancel(AutoMagpieThread)
-        AutoMagpieThread = nil
-    end
-end
-
-MethodsSection:Toggle({
-    Title = "Auto Magpie",
-    Desc = "Automatically collect variant fruits",
-    Value = false,
-    Callback = function(state)
-        AutoMagpieEnabled = state
-        if state then
-            startAutoMagpie()
-            WindUI:Notify({ Title = "Auto Magpie", Content = "Enabled", Icon = "check", Duration = 2 })
-        else
-            stopAutoMagpie()
-            WindUI:Notify({ Title = "Auto Magpie", Content = "Disabled", Icon = "check", Duration = 2 })
-        end
-    end
-})
 
 MethodsSection:Toggle({
     Title = "Auto Feed Pets",

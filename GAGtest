@@ -86,14 +86,14 @@ MainSection:Button({
 
 MainSection:Toggle({
     Title = "Anti-AFK (Always On)",
-    Desc = "Anti-AFK is enabled by script",
+    Desc = "Prevent kicking you in the server",
     Value = true,
     Callback = function() WindUI:Notify({ Title = "Info", Content = "Anti-AFK is always enabled in this script", Icon = "info", Duration = 2 }) end
 })
 
 MainSection:Toggle({
     Title = "Auto Reconnect (Always On)",
-    Desc = "Auto Reconnect is enabled by script",
+    Desc = "Automatically reconnect when server shutdown",
     Value = true,
     Callback = function() WindUI:Notify({ Title = "Info", Content = "Auto Reconnect is always enabled in this script", Icon = "info", Duration = 2 }) end
 })

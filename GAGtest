@@ -378,7 +378,7 @@ local DropdownOpen = false
 -- Auto Feed Pets variables
 local AutoFeedPetsEnabled = false
 local AutoFeedPetsThread = nil
-local feedInterval = 3 -- seconds between feed attempts (slower to avoid spamming)
+local feedInterval = 3 -- seconds between feed attempts (one pet per cycle)
 local feedFruits = {
     "Buttercup",
     "Tomato",
@@ -410,7 +410,10 @@ local feedFruits = {
     "Zebrazinkle",
 }
 
--- Helper: attempt to feed all owned pets using available fruit tools
+-- Internal pointer for round-robin feeding
+local AutoFeedCurrentIndex = 1
+
+-- Helper: feed one owned pet per cycle using available fruit tools
 local function startAutoFeedPets()
     if AutoFeedPetsThread then return end
     AutoFeedPetsThread = task.spawn(function()
@@ -419,36 +422,40 @@ local function startAutoFeedPets()
             local humanoid = character and character:FindFirstChild("Humanoid")
             local backpack = player:FindFirstChild("Backpack")
             if humanoid and backpack and feedEvent then
-                -- ensure each pet is fed at most once per cycle
-                local fedThisRound = {}
+                -- collect owned pets
+                local petsOwned = {}
+                for _, petMover in ipairs(workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:GetChildren() or {}) do
+                    if petMover:GetAttribute("OWNER") == player.Name then
+                        local petUUID = petMover:GetAttribute("UUID")
+                        if petUUID then table.insert(petsOwned, petMover) end
+                    end
+                end
 
-                for _, tool in ipairs(backpack:GetChildren()) do
-                    if tool:IsA("Tool") and tool:GetAttribute("b") == "j" then
-                        local tname = tool.Name:lower()
-                        local okname = false
-                        for _, f in ipairs(feedFruits) do
-                            if tname:find(f:lower()) then
-                                okname = true; break
-                            end
-                        end
-                        if okname then
-                            if tool.Parent ~= character then
-                                pcall(function() humanoid:EquipTool(tool) end)
-                            end
+                if #petsOwned > 0 then
+                    if AutoFeedCurrentIndex > #petsOwned then AutoFeedCurrentIndex = 1 end
+                    local petMover = petsOwned[AutoFeedCurrentIndex]
+                    local petUUID = petMover and petMover:GetAttribute("UUID")
 
-                            for _, petMover in ipairs(workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:GetChildren() or {}) do
-                                if petMover:GetAttribute("OWNER") == player.Name then
-                                    local petUUID = petMover:GetAttribute("UUID")
-                                    if petUUID and not fedThisRound[petUUID] then
-                                        pcall(function() feedEvent:FireServer("Feed", petUUID) end)
-                                        fedThisRound[petUUID] = true
-                                    end
+                    -- find a suitable fruit tool
+                    local fed = false
+                    for _, tool in ipairs(backpack:GetChildren()) do
+                        if tool:IsA("Tool") and tool:GetAttribute("b") == "j" then
+                            local tname = tool.Name:lower()
+                            for _, f in ipairs(feedFruits) do
+                                if tname:find(f:lower()) then
+                                    pcall(function() humanoid:EquipTool(tool) end)
+                                    if petUUID then pcall(function() feedEvent:FireServer("Feed", petUUID) end) end
+                                    fed = true
+                                    break
                                 end
                             end
-                            -- small delay to avoid spamming multiple tools in same tick
-                            task.wait(0.05)
                         end
+                        if fed then break end
                     end
+
+                    -- advance to next pet for next cycle
+                    AutoFeedCurrentIndex = AutoFeedCurrentIndex + 1
+                    if AutoFeedCurrentIndex > #petsOwned then AutoFeedCurrentIndex = 1 end
                 end
             end
             task.wait(feedInterval)

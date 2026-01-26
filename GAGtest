@@ -28,6 +28,12 @@ local Window = WindUI:CreateWindow({
     Resizable = true,
 })
 
+Window:EditOpenButton({
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
+})
+
 -- Add version tag
 Window:Tag({
 	Title = "Server: " .. tostring(game.PlaceVersion),

@@ -80,7 +80,7 @@ local Window = WindUI:CreateWindow({
 	Title = "XUAN HUB",
 	Author = "by discord.gg/kaydensdens",
 	Icon = "rbxassetid://103326199885496",
-	Theme = "Pink",
+	Theme = "Midnight",
 	Size = UDim2.fromOffset(640, 480),
 	Draggable = true,
 	HasOutline = true,
@@ -93,6 +93,12 @@ local Window = WindUI:CreateWindow({
     },
 })
 
+WindUI:Gradient({                                                      
+    ["0"] = { Color = Color3.fromHex("#1f1f23"), Transparency = 0 },            
+    ["100"]   = { Color = Color3.fromHex("#18181b"), Transparency = 0 },      
+}, {                                                                            
+    Rotation = 0,                                                               
+}), 
 
 
 Window:EditOpenButton({

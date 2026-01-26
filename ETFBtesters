@@ -86,6 +86,7 @@ local Window = WindUI:CreateWindow({
 	HasOutline = true,
 	OutlineThickness = 3,
     Resizable = true,
+    Transparent = true,
 })
 
 Window:EditOpenButton({

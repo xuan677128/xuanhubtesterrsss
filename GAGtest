@@ -219,6 +219,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GameEvents = ReplicatedStorage:WaitForChild("GameEvents")
 local NotificationEvent = GameEvents:WaitForChild("Notification")
 local SellInventoryEvent = GameEvents:WaitForChild("Sell_Inventory")
+local feedEvent = GameEvents:FindFirstChild("ActivePetService") or GameEvents:FindFirstChild("PetService") or GameEvents:FindFirstChild("ActivePetService")
 local SELL_POINT = workspace:WaitForChild("Tutorial_Points"):WaitForChild("Tutorial_Point_2")
 
 -- Farm Manager
@@ -374,30 +375,93 @@ local RapidCollectEnabled = false
 local AutoMagpieThread = nil
 local DropdownOpen = false
 
--- Methods toggles (moved here so functions & vars exist when callbacks run)
-MethodsSection:Toggle({
-    Title = "Auto Magpie",
-    Desc = "Automatically collect fruits (uses script logic)",
-    Value = false,
-    Callback = function(state)
-        AutoMagpieEnabled = state
-        if state then
-            if AutoMagpieThread then task.cancel(AutoMagpieThread) end
-            AutoMagpieThread = task.spawn(function()
-                while AutoMagpieEnabled do
-                    if RapidCollectEnabled then
-                        _FruitCollectorMachine.CollectFruitByNamesBatchMode(nil, 30)
-                    else
-                        _FruitCollectorMachine.CollectOneFruit()
+-- Auto Feed Pets variables
+local AutoFeedPetsEnabled = false
+local AutoFeedPetsThread = nil
+local feedInterval = 1 -- seconds between feed attempts
+local feedFruits = {
+    "Buttercup",
+    "Tomato",
+    "Coconut",
+    "Bone Blossom",
+    "BoneBlossom",
+    "Blueberry",
+    "Beast Buttercup",
+    "Bonanza Bloom",
+    "Crimson Thorn",
+    "Firework Fern",
+    "Gingerbread Blossom",
+    "Great Pumpkin",
+    "Heart Gem",
+    "Jungle Cherry",
+    "Luminova",
+    "Maple Resin",
+    "New Years Tinsel",
+    "Octobloom",
+    "Peppermint Vine",
+    "Purple Treeshroom",
+    "Reindeer Root",
+    "Spirit Sparkle",
+    "Star Palm",
+    "Taffy Tree",
+    "Trinity Fruit",
+    "Weeping Branch",
+    "Witches Hair",
+    "Zebrazinkle",
+}
+
+-- Helper: attempt to feed all owned pets using available fruit tools
+local function startAutoFeedPets()
+    if AutoFeedPetsThread then return end
+    AutoFeedPetsThread = task.spawn(function()
+        while AutoFeedPetsEnabled do
+            local character = player.Character
+            local humanoid = character and character:FindFirstChild("Humanoid")
+            local backpack = player:FindFirstChild("Backpack")
+            if humanoid and backpack and feedEvent then
+                for _, tool in ipairs(backpack:GetChildren()) do
+                    if tool:IsA("Tool") and tool:GetAttribute("b") == "j" then
+                        local tname = tool.Name:lower()
+                        local okname = false
+                        for _, f in ipairs(feedFruits) do
+                            if tname:find(f:lower()) then
+                                okname = true; break
+                            end
+                        end
+                        if okname then
+                            if tool.Parent ~= character then
+                                pcall(function() humanoid:EquipTool(tool) end)
+                            end
+
+                            for _, petMover in ipairs(workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:GetChildren() or {}) do
+                                if petMover:GetAttribute("OWNER") == player.Name then
+                                    local petUUID = petMover:GetAttribute("UUID")
+                                    if petUUID then
+                                        pcall(function() feedEvent:FireServer("Feed", petUUID) end)
+                                    end
+                                end
+                            end
+                            -- small delay to avoid spamming multiple tools in same tick
+                            task.wait(0.05)
+                        end
                     end
-                    task.wait()
                 end
-            end)
-        else
-            if AutoMagpieThread then task.cancel(AutoMagpieThread); AutoMagpieThread = nil end
+            end
+            task.wait(feedInterval)
         end
+        AutoFeedPetsThread = nil
+    end)
+end
+
+local function stopAutoFeedPets()
+    AutoFeedPetsEnabled = false
+    if AutoFeedPetsThread then
+        task.cancel(AutoFeedPetsThread)
+        AutoFeedPetsThread = nil
     end
-})
+end
+
+-- Auto Magpie toggle removed (control the feature via script variables or other UI)
 
 MethodsSection:Toggle({
     Title = "Rapid Collect",
@@ -421,26 +485,22 @@ MethodsSection:Toggle({
 })
 
 MethodsSection:Toggle({
-    Title = "Show Event Time",
-    Desc = "Show in-game event time UI",
+    Title = "Auto Feed Pets",
+    Desc = "Automatically feed pets",
     Value = false,
     Callback = function(state)
-        if not screengui_693 then
-            -- create small Surface Preview GUI on demand
-            screengui_693 = Instance.new("ScreenGui")
-            screengui_693.Name = "SurfacePreview"
-            screengui_693.ResetOnSpawn = false
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.fromScale(0.12, 0.12)
-            frame.AnchorPoint = Vector2.new(1, 1)
-            frame.Position = UDim2.fromScale(0.98, 0.98)
-            frame.BackgroundTransparency = 1
-            frame.Parent = screengui_693
-            screengui_693.Parent = player:WaitForChild("PlayerGui")
+        AutoFeedPetsEnabled = state
+        if state then
+            WindUI:Notify({ Title = "Auto Feed Pets", Content = "Enabled", Icon = "check", Duration = 2 })
+            startAutoFeedPets()
+        else
+            stopAutoFeedPets()
+            WindUI:Notify({ Title = "Auto Feed Pets", Content = "Disabled", Icon = "check", Duration = 2 })
         end
-        if screengui_693 then screengui_693.Enabled = state end
     end
 })
+
+-- Show Event Time toggle removed (Surface preview can be enabled via script if desired)
 
 -- Info Button Click
 -- legacy info button removed (WindUI provides same info via MethodsSection:Button)

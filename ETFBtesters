@@ -87,9 +87,10 @@ local Window = WindUI:CreateWindow({
 	OutlineThickness = 3,
     Resizable = true,
     Transparent = true,
+    Window.Icon:Enable()
 })
 
-Window.Icon:Enable()
+
 
 Window:EditOpenButton({
     OnlyMobile = false,

@@ -98,7 +98,7 @@ WindUI:Gradient({
     ["100"]   = { Color = Color3.fromHex("#18181b"), Transparency = 0 },      
 }, {                                                                            
     Rotation = 0,                                                               
-}), 
+})
 
 
 Window:EditOpenButton({

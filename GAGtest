@@ -26,6 +26,11 @@ local Window = WindUI:CreateWindow({
     Draggable = true,
     HasOutline = true,
     Resizable = true,
+    Transparent = true,
+    User = {
+        Enabled = true,
+        Anonymous = false,
+    },
 })
 
 Window:EditOpenButton({

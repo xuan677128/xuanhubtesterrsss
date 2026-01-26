@@ -93,12 +93,13 @@ local Window = WindUI:CreateWindow({
     },
 })
 
-WindUI:Gradient({                                                      
-    ["0"] = { Color = Color3.fromHex("#1f1f23"), Transparency = 0 },            
-    ["100"]   = { Color = Color3.fromHex("#18181b"), Transparency = 0 },      
-}, {                                                                            
-    Rotation = 0,                                                               
+WindUI:Gradient({
+    ["0"] = { Color = Color3.fromHex("#FFD1DC"), Transparency = 0 },  
+    ["100"] = { Color = Color3.fromHex("#FFB6C1"), Transparency = 0 },
+}, {
+    Rotation = 0,
 })
+
 
 
 Window:EditOpenButton({

@@ -99,7 +99,7 @@ MainSection:Toggle({
 })
 
 -- Methods tab controls (Auto Magpie and options)
-local MethodsSection = MethodsTab:Section({ Title = "Auto Magpie", Opened = false })
+local MethodsSection = MethodsTab:Section({ Title = "Auto Magpie", Opened = true})
 MethodsSection:Button({
     Title = "Info",
     Desc = "Auto Magpie usage instructions",

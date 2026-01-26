@@ -524,13 +524,60 @@ MethodsSection:Toggle({
     Callback = function(state) AllowSellEnabled = state end
 })
 
+
 MethodsSection:Toggle({
-    Title = "Variant Collect",
+    Title = "Auto Collcect Variant Collect",
     Desc = "Collect only variant fruits",
     Value = false,
     Callback = function(state)
-        VariantCollectEnabled = state
-        WindUI:Notify({ Title = "Variant Collect", Content = state and "Enabled" or "Disabled", Icon = "check", Duration = 2 })
+        AutoMagpieEnabled = state
+        if state then
+            startAutoMagpie()
+            WindUI:Notify({ Title = "Auto Collcect Variant Collect", Content = "Enabled", Icon = "check", Duration = 2 })
+        else
+            stopAutoMagpie()
+            WindUI:Notify({ Title = "Auto Collcect Variant Collect", Content = "Disabled", Icon = "check", Duration = 2 })
+        end
+    end
+})
+
+-- Auto Magpie: collect variant fruits automatically
+local function startAutoMagpie()
+    if AutoMagpieThread then return end
+    AutoMagpieThread = task.spawn(function()
+        while AutoMagpieEnabled do
+            if FarmManager.mFarm then
+                pcall(function()
+                    _FruitCollectorMachine.CollectVariantsBatch(12)
+                end)
+            end
+            task.wait(1.2)
+        end
+        AutoMagpieThread = nil
+    end)
+end
+
+local function stopAutoMagpie()
+    AutoMagpieEnabled = false
+    if AutoMagpieThread then
+        task.cancel(AutoMagpieThread)
+        AutoMagpieThread = nil
+    end
+end
+
+MethodsSection:Toggle({
+    Title = "Auto Magpie",
+    Desc = "Automatically collect variant fruits",
+    Value = false,
+    Callback = function(state)
+        AutoMagpieEnabled = state
+        if state then
+            startAutoMagpie()
+            WindUI:Notify({ Title = "Auto Magpie", Content = "Enabled", Icon = "check", Duration = 2 })
+        else
+            stopAutoMagpie()
+            WindUI:Notify({ Title = "Auto Magpie", Content = "Disabled", Icon = "check", Duration = 2 })
+        end
     end
 })
 

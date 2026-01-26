@@ -266,6 +266,11 @@ local AllowedVariants = {
 	Silver = true,
 }
 
+-- Feature flags (moved earlier so collector logic can read them)
+local VariantCollectEnabled = false -- when true: collect only allowed variants
+local RapidCollectEnabled = false
+local RapidCollectThread = nil
+
 -- Helper: Check if fruit has allowed variant
 local function HasAllowedVariant(fruit)
 	local variantValue = fruit:FindFirstChild("Variant")
@@ -281,8 +286,8 @@ _FruitCollectorMachine.IsFruitReadyToCollect = function(fruit, bypassready)
 	if not fruit then return false end
 	if fruit:GetAttribute("Favorited") then return false end
 
-	-- Skip fruits that aren't allowed variants
-	if not HasAllowedVariant(fruit) then
+	-- Skip fruits that aren't allowed variants if Variant Collect is enabled
+	if VariantCollectEnabled and not HasAllowedVariant(fruit) then
 		return false
 	end
 
@@ -323,8 +328,7 @@ _FruitCollectorMachine.CollectOneFruit = function()
 			local candidates = folder and folder:GetChildren() or {plant}
 
 			for _, fruit in ipairs(candidates) do
-				-- Skip if not allowed variant right away
-				if HasAllowedVariant(fruit) and _FruitCollectorMachine.IsFruitReadyToCollect(fruit) then
+				if _FruitCollectorMachine.IsFruitReadyToCollect(fruit) then
 					_S.collectEvent:FireServer({ fruit })
 					return true
 				end
@@ -370,8 +374,6 @@ end
 -- Auto Magpie Variables
 local AutoMagpieEnabled = false
 local AllowSellEnabled = false
-local VariantCollectEnabled = false
-local RapidCollectEnabled = false
 local AutoMagpieThread = nil
 local DropdownOpen = false
 
@@ -474,11 +476,45 @@ end
 
 -- Auto Magpie toggle removed (control the feature via script variables or other UI)
 
+-- Rapid Collect control: spawns a background thread that repeatedly collects in batch mode
+local function startRapidCollect()
+    if RapidCollectThread then return end
+    RapidCollectThread = task.spawn(function()
+        while RapidCollectEnabled do
+            if FarmManager.mFarm then
+                pcall(function()
+                    -- batch collect up to 15 fruits (respects VariantCollectEnabled via IsFruitReadyToCollect)
+                    _FruitCollectorMachine.CollectFruitByNamesBatchMode(nil, 15)
+                end)
+            end
+            task.wait(1)
+        end
+        RapidCollectThread = nil
+    end)
+end
+
+local function stopRapidCollect()
+    RapidCollectEnabled = false
+    if RapidCollectThread then
+        task.cancel(RapidCollectThread)
+        RapidCollectThread = nil
+    end
+end
+
 MethodsSection:Toggle({
     Title = "Rapid Collect",
     Desc = "Collect rapidly (batch)",
     Value = false,
-    Callback = function(state) RapidCollectEnabled = state end
+    Callback = function(state)
+        RapidCollectEnabled = state
+        if state then
+            startRapidCollect()
+            WindUI:Notify({ Title = "Rapid Collect", Content = "Enabled", Icon = "check", Duration = 2 })
+        else
+            stopRapidCollect()
+            WindUI:Notify({ Title = "Rapid Collect", Content = "Disabled", Icon = "check", Duration = 2 })
+        end
+    end
 })
 
 MethodsSection:Toggle({
@@ -492,7 +528,10 @@ MethodsSection:Toggle({
     Title = "Variant Collect",
     Desc = "Collect only variant fruits",
     Value = false,
-    Callback = function(state) VariantCollectEnabled = state end
+    Callback = function(state)
+        VariantCollectEnabled = state
+        WindUI:Notify({ Title = "Variant Collect", Content = state and "Enabled" or "Disabled", Icon = "check", Duration = 2 })
+    end
 })
 
 MethodsSection:Toggle({

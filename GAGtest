@@ -1074,48 +1074,6 @@ TsunamiSection:Button({
     end,
 })
 
--- Teleport to first gap (reverse) - button
-TsunamiSection:Button({
-    Title = "Smart Teleport to First Gap",
-    Desc = "Press to Automatically teleport through gaps to the first gap",
-    Locked = false,
-    Callback = function()
-        if _G.ReverseTourActive then
-            _G.ReverseTourActive = false
-            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap stopped", Icon = "check", Duration = 2 })
-            return
-        end
-
-        _G.ReverseTourActive = true
-        _G.AutoTourActive = false
-        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
-        task.spawn(function()
-            local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
-            if not gaps then
-                _G.ReverseTourActive = false; return
-            end
-            while _G.ReverseTourActive do
-                local currentPosIndex = GetNearestGapIndex()
-                if currentPosIndex > 1 then
-                    for i = currentPosIndex - 1, 1, -1 do
-                        if not _G.ReverseTourActive then break end
-                        local target = gaps:FindFirstChild("Gap" .. i)
-                        if target then
-                            local ok, mcf = pcall(function() return target:GetModelCFrame() end)
-                            if ok and mcf then
-                                local targetPos = (mcf * CFrame.new(0, -2, 0)).Position
-                                while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
-                                SmartMove(targetPos, "Gap" .. i)
-                                task.wait(1.5)
-                            end
-                        end
-                    end
-                end
-                task.wait(2)
-            end
-        end)
-    end,
-})
 
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })

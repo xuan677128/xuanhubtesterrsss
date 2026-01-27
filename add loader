@@ -1,0 +1,10 @@
+local PLACE_ETFB = 131623223084840
+local PLACE_GAG  = 126884695634066
+
+if game.PlaceId == PLACE_ETFB then
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanETFB"))()
+elseif game.PlaceId == PLACE_GAG then
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanGrowAGarden"))()
+else
+	game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
+end

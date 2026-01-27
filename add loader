@@ -1,10 +1,30 @@
-local PLACE_ETFB = 131623223084840
-local PLACE_GAG  = 126884695634066
 
-if game.PlaceId == PLACE_ETFB then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanETFB"))()
-elseif game.PlaceId == PLACE_GAG then
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanGrowAGarden"))()
+
+local WindUI = loadstring(game:HttpGet(
+	"https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+local Var = {
+	[7436755782] = "https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanGrowAGarden",
+	[9363735110] = "https://raw.githubusercontent.com/xuan677128/XuanHUB/refs/heads/main/XuanETFB",
+}
+
+local URL = Var[game.GameId]
+if URL then
+	loadstring(game:HttpGet(URL))()
 else
-	game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
+	local msg = string.format("Xuan Loader: unsupported game (PlaceId=%s, GameId=%s)", tostring(game.PlaceId), tostring(game.GameId))
+	pcall(function()
+		if type(WindUI) == "table" and WindUI.Notify then
+			WindUI:Notify({ Title = "Xuan Loader", Content = msg, Icon = "info", Duration = 6 })
+			return
+		end
+	end)
+
+	pcall(function()
+		local StarterGui = game:GetService("StarterGui")
+		StarterGui:SetCore("SendNotification", { Title = "Xuan Loader", Text = msg, Duration = 6 })
+	end)
+
+	print(msg)
 end

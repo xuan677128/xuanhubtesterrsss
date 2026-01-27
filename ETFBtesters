@@ -1045,7 +1045,7 @@ TsunamiSection:Button({
 
         _G.AutoTourActive = true
         _G.ReverseTourActive = false
-        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
+        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started. Click again to stop.", Icon = "check", Duration = 2 })
         task.spawn(function()
             local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
             if not gaps then

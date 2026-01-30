@@ -44,24 +44,25 @@ local defaultSettings = {
     -- God Mode
     godMode = false,
     -- Tsunami tracker
-    autoTsunamiTracker = false
+	autoTsunamiTracker = false,
+	-- Wider hitbox (tool reach)
+	hitboxEnabled = false,
+	hitboxWidth = 70,
 }
 
 local function loadSettings()
-    if not isfolder("XuanHub") then
-        makefolder("XuanHub")
-    end
+	if not isfolder("XuanHub") then
+		makefolder("XuanHub")
+	end
 
-    if isfile("XuanHub/" .. settingsFileName) then
-        local success, data = pcall(function()
-            return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
-        end)
-        if success and data then
-            return data
-        end
-    end
-    return defaultSettings
-end
+	if isfile("XuanHub/" .. settingsFileName) then
+		local success, data = pcall(function()
+			return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
+		end)
+		if success and data then
+			return data
+		end
+	end
 
 local function saveSettings(settings)
     pcall(function()
@@ -172,6 +173,12 @@ local autoUpgradeCarry = false
 local autoUpgradeSpeed = false
 local upgradeSpeedAmount = 1
 local autoRebirth = false
+
+-- Wider-hitbox runtime state
+local widerHitboxEnabled = false
+local widerHitboxWidth = 70 -- studs (default)
+local widerHitboxConn = nil
+local _widerHitbox_tracking = {}
 
 -- Unlock Zoom state
 local unlockZoomEnabled = false
@@ -363,7 +370,7 @@ task.spawn(function()
         if collectingMoney then
             local myBase = findMyBase()
             if myBase then
-                for i = 1, 40 do
+                for i = 1, 30 do
                     pcall(function()
                         local args = {
                             "Collect Money",
@@ -1030,7 +1037,7 @@ local function SmartMove(targetPos, areaName)
     end
 end
 
--- Teleport to last gap
+-- Teleport to last gap (button)
 TsunamiSection:Button({
     Title = "Smart Teleport to Last Gap",
     Desc = "Press to start teleport through gaps to the last gap",
@@ -1045,7 +1052,7 @@ TsunamiSection:Button({
 
         _G.AutoTourActive = true
         _G.ReverseTourActive = false
-        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started. Click again to stop.", Icon = "check", Duration = 2 })
+        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
             local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
             if not gaps then
@@ -1074,6 +1081,48 @@ TsunamiSection:Button({
     end,
 })
 
+-- Teleport to first gap (reverse) - button
+TsunamiSection:Button({
+    Title = "Smart Teleport to First Gap",
+    Desc = "Press to Automatically teleport through gaps to the first gap",
+    Locked = false,
+    Callback = function()
+        if _G.ReverseTourActive then
+            _G.ReverseTourActive = false
+            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap stopped", Icon = "check", Duration = 2 })
+            return
+        end
+
+        _G.ReverseTourActive = true
+        _G.AutoTourActive = false
+        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
+        task.spawn(function()
+            local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
+            if not gaps then
+                _G.ReverseTourActive = false; return
+            end
+            while _G.ReverseTourActive do
+                local currentPosIndex = GetNearestGapIndex()
+                if currentPosIndex > 1 then
+                    for i = currentPosIndex - 1, 1, -1 do
+                        if not _G.ReverseTourActive then break end
+                        local target = gaps:FindFirstChild("Gap" .. i)
+                        if target then
+                            local ok, mcf = pcall(function() return target:GetModelCFrame() end)
+                            if ok and mcf then
+                                local targetPos = (mcf * CFrame.new(0, -2, 0)).Position
+                                while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
+                                SmartMove(targetPos, "Gap" .. i)
+                                task.wait(1.5)
+                            end
+                        end
+                    end
+                end
+                task.wait(2)
+            end
+        end)
+    end,
+})
 
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
@@ -1146,6 +1195,140 @@ UtilitiesSection:Toggle({
             disableGodMode()
         end
         savedSettings.godMode = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Wider hitbox helpers
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local BASE_SIZE = Vector3.new(4, 4, 4)
+local MAX_SIZE = Vector3.new(150, 150, 150)
+
+local function _collectToolHitboxes()
+    table.clear(_widerHitbox_tracking)
+    -- Backpack
+    if LocalPlayer:FindFirstChild("Backpack") then
+        for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hb = tool:FindFirstChild("Hitbox")
+                if hb and hb:IsA("BasePart") then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
+                end
+            end
+        end
+    end
+    -- Character (equipped)
+    if LocalPlayer.Character then
+        for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hb = tool:FindFirstChild("Hitbox")
+                if hb and hb:IsA("BasePart") then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
+                end
+            end
+        end
+    end
+end
+
+local function _applyWiderHitboxes()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    _collectToolHitboxes()
+    if not next(_widerHitbox_tracking) then return end
+
+    -- find nearby players
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local nearby = {}
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (pl.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d <= 50 then table.insert(nearby, pl.Character.HumanoidRootPart) end
+        end
+    end
+
+    for hb, meta in pairs(_widerHitbox_tracking) do
+        if #nearby == 0 then
+            hb.Size = meta.origSize or BASE_SIZE
+            hb.Transparency = meta.origTransparency or 1
+            hb.CanCollide = false
+        else
+            local targetPos = hrp.Position
+            if #nearby == 1 then
+                local dir = (nearby[1].Position - hrp.Position).Unit
+                targetPos = nearby[1].Position + dir * 2
+            else
+                local total = Vector3.new()
+                for _, p in ipairs(nearby) do
+                    total = total + p.Position
+                end
+                targetPos = total / #nearby
+            end
+            local finalSize = ( #nearby == 1 ) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or MAX_SIZE
+            hb.Size = finalSize
+            hb.Position = targetPos
+            hb.Transparency = 0.7
+            hb.CanCollide = false
+        end
+    end
+end
+
+local function startWiderHitbox()
+    if widerHitboxConn then return end
+    widerHitboxEnabled = true
+    widerHitboxConn = RunService.Heartbeat:Connect(function()
+        if widerHitboxEnabled then _applyWiderHitboxes() end
+    end)
+    -- react to tool/character changes
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child) task.wait(0.1); _collectToolHitboxes() end)
+    LocalPlayer.CharacterAdded:Connect(function() task.wait(1); _collectToolHitboxes() end)
+    WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox enabled", Icon = "check", Duration = 2 })
+end
+
+local function stopWiderHitbox()
+    widerHitboxEnabled = false
+    if widerHitboxConn then
+        widerHitboxConn:Disconnect()
+        widerHitboxConn = nil
+    end
+    -- restore originals
+    for hb, meta in pairs(_widerHitbox_tracking) do
+        pcall(function()
+            if meta.part and meta.origSize then meta.part.Size = meta.origSize end
+            if meta.part and meta.origTransparency then meta.part.Transparency = meta.origTransparency end
+            if meta.part then meta.part.CanCollide = false end
+        end)
+    end
+    table.clear(_widerHitbox_tracking)
+    WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox disabled", Icon = "check", Duration = 2 })
+end
+
+-- Utilities: Wider hitbox UI
+UtilitiesSection:Toggle({
+    Title = "Enable Wider Hitbox",
+    Desc = "Expand tool hitboxes when players are nearby",
+    Value = savedSettings.hitboxEnabled,
+    Callback = function(state)
+        savedSettings.hitboxEnabled = state
+        saveSettings(savedSettings)
+        if state then
+            widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
+            startWiderHitbox()
+        else
+            stopWiderHitbox()
+        end
+    end
+})
+
+UtilitiesSection:Slider({
+    Title = "Hitbox Width",
+    Desc = "How wide the hitbox becomes (studs)",
+    Step = 1,
+    Value = { Min = 20, Max = 120, Default = savedSettings.hitboxWidth or 70 },
+    Callback = function(value)
+        widerHitboxWidth = math.clamp(tonumber(value) or 70, 8, 200)
+        savedSettings.hitboxWidth = widerHitboxWidth
         saveSettings(savedSettings)
     end
 })
@@ -1564,6 +1747,8 @@ task.spawn(function()
         disableTsunamiTracker()
     end
 end)
+
+end
 
 -- ================= FINALIZE =================
 WindUI:Notify({

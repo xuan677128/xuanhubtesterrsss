@@ -51,18 +51,29 @@ local defaultSettings = {
 }
 
 local function loadSettings()
-	if not isfolder("XuanHub") then
-		makefolder("XuanHub")
-	end
+    if not isfolder("XuanHub") then
+        makefolder("XuanHub")
+    end
 
-	if isfile("XuanHub/" .. settingsFileName) then
-		local success, data = pcall(function()
-			return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
-		end)
-		if success and data then
-			return data
-		end
-	end
+    if isfile("XuanHub/" .. settingsFileName) then
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
+        end)
+        if success and data then
+            return data
+        end
+    end
+
+    -- no settings file or parse failed: return a safe copy of defaults
+    local ok, copy = pcall(function()
+        return HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+    end)
+    if ok and type(copy) == "table" then
+        return copy
+    end
+
+    return defaultSettings
+end
 
 local function saveSettings(settings)
     pcall(function()
@@ -1747,8 +1758,6 @@ task.spawn(function()
         disableTsunamiTracker()
     end
 end)
-
-end
 
 -- ================= FINALIZE =================
 WindUI:Notify({

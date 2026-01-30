@@ -363,7 +363,7 @@ task.spawn(function()
         if collectingMoney then
             local myBase = findMyBase()
             if myBase then
-                for i = 1, 30 do
+                for i = 1, 40 do
                     pcall(function()
                         local args = {
                             "Collect Money",

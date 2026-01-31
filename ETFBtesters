@@ -1386,6 +1386,38 @@ local SellHeldBtn = UpgBase:Button({
     end
 })
 
+-- Unlock VIP Walls (one-shot button)
+UpgBase:Button({
+    Title = "Unlock VIP Walls",
+    Desc = "Disable Shield of VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local walls = workspace:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    pcall(function() v:Destroy() end)
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: "..tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
 
 
 -- ================= EVENT TAB =================

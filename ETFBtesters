@@ -1623,7 +1623,7 @@ UpgBase:Button({
 -- ================= EVENT TAB =================
 local RadioactiveSection = EventTab:Section({
     Title = "Radioactive Event",
-    Opened = false,
+    Opened = true,
 })
 
 -- Auto Collect Radioactive

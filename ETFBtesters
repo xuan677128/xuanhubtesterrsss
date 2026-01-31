@@ -1621,13 +1621,13 @@ UpgBase:Button({
 
 
 -- ================= EVENT TAB =================
-EventTab:Section({
+local RadioactiveSection = EventTab:Section({
     Title = "Radioactive Event",
     Opened = false,
 })
 
 -- Auto Collect Radioactive
-EventTab:Toggle({
+RadioactiveSection:Toggle({
     Title = "Auto Collect Radioactive Coins",
     Desc = "(Patched, it will still collect but not many)",
     Value = savedSettings.autoCollectRadioactive,
@@ -1638,10 +1638,10 @@ EventTab:Toggle({
     end
 })
 
-EventTab:Space()
+RadioactiveSection:Space()
 
 -- Auto Spin
-EventTab:Toggle({
+RadioactiveSection:Toggle({
     Title = "Auto Spin Radioactive Wheel",
     Desc = "Automatically spins the radioactive wheel",
     Value = savedSettings.autoSpin,
@@ -1652,7 +1652,7 @@ EventTab:Toggle({
     end
 })
 
-EventTab:Input({
+RadioactiveSection:Input({
     Title = "Spin Delay",
     Value = tostring(savedSettings.spinDelay),
     Placeholder = "0.5",
@@ -1665,10 +1665,10 @@ EventTab:Input({
     end
 })
 
-EventTab:Space()
+RadioactiveSection:Space()
 
 -- Auto Obby
-EventTab:Toggle({
+RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
     Desc = "Automatically completes the obby",
     Value = savedSettings.autoObby,
@@ -1680,12 +1680,12 @@ EventTab:Toggle({
 })
 
 -- UFO Event
-EventTab:Section({
+local UFOSection = EventTab:Section({
     Title = "UFO Event",
     Opened = true,
 })
 
-EventTab:Toggle({
+UFOSection:Toggle({
     Title = "Auto Collect UFO Coins",
     Desc = "Automatically collects UFO coins",
     Value = savedSettings.autoCollectUFO,
@@ -1696,7 +1696,7 @@ EventTab:Toggle({
     end
 })
 
-EventTab:Toggle({
+UFOSection:Toggle({
     Title = "Auto Spin UFO Wheel",
     Desc = "Automatically spins the UFO wheel",
     Value = savedSettings.autoSpinUFO,
@@ -1708,12 +1708,12 @@ EventTab:Toggle({
 })
 
 -- Money Event
-EventTab:Section({
+local MoneySection = EventTab:Section({
     Title = "Money Event",
     Opened = true,
 })
 
-EventTab:Toggle({
+MoneySection:Toggle({
     Title = "Auto Collect Gold Bar",
     Desc = "Automatically collect Gold Bars",
     Value = savedSettings.autoCollectGoldBar,
@@ -1724,7 +1724,7 @@ EventTab:Toggle({
     end
 })
 
-EventTab:Toggle({
+MoneySection:Toggle({
     Title = "Auto Spin Money Wheel",
     Desc = "Automatically spin the money wheel",
     Value = savedSettings.autoSpinMoneyWheel,
@@ -1735,7 +1735,7 @@ EventTab:Toggle({
     end
 })
 
-EventTab:Button({
+MoneySection:Button({
     Title = "Auto Complete 3 Money Obbies",
     Desc = "Automatically complete all 3 money obbies",
     Callback = function()

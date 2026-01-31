@@ -39,6 +39,10 @@ local defaultSettings = {
     autoCollectUFO = false,
     -- UFO Spin
     autoSpinUFO = false,
+    -- Money wheel spin
+    autoSpinMoneyWheel = false,
+    -- Money Event (Gold Bar)
+    autoCollectGoldBar = false,
     -- Unlock Zoom
     unlockZoom = false,
     -- God Mode
@@ -178,7 +182,9 @@ local spinning = false
 local autoObby = false
 local collectingMoney = false
 local autoCollectUFO = false
+local autoCollectGoldBar = false
 local autoSpinUFO = false
+local autoSpinMoneyWheel = false
 local autoUpgradeBase = false
 local autoUpgradeCarry = false
 local autoUpgradeSpeed = false
@@ -215,33 +221,77 @@ if player.Character then
 end
 player.CharacterAdded:Connect(setupCharacter)
 
--- Global Auto Obby logic (runs whenever obby activates and toggle is on)
-task.spawn(function()
-    local mapVariants = workspace:WaitForChild("MapVariants")
-
-    local function runOnce(radioactive)
-        if not autoObby or not humanoidRootPart then return end
-        local obbyEnd = radioactive:WaitForChild("ObbyEnd", 5)
-        if obbyEnd then
-            firetouchinterest(humanoidRootPart, obbyEnd, 0)
-            task.wait()
-            firetouchinterest(humanoidRootPart, obbyEnd, 1)
+-- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout (single-file change)
+local function findRadioactiveRoot()
+    -- primary: find the shared-instances container and locate the obby model inside it
+    local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+    if rms then
+        -- prefer a model that contains ObbyEnd or has 'Obby' in its name
+        for _, d in ipairs(rms:GetDescendants()) do
+            if d:IsA("Model") and (d:FindFirstChild("ObbyEnd") or string.match(d.Name, "[Oo]bby")) then
+                return d
+            end
+        end
+        -- sometimes the obby is a direct child (e.g. Mud -> Obby); check first-level children
+        for _, c in ipairs(rms:GetChildren()) do
+            if c:IsA("Model") and c:FindFirstChild("ObbyEnd") then
+                return c
+            end
         end
     end
 
-    -- Check for existing on script start
-    local existing = mapVariants:FindFirstChild("Radioactive")
-    if existing and autoObby then
-        runOnce(existing)
+    -- fallback: top-level legacy names (kept minimal)
+    local legacy = workspace:FindFirstChild("Radioactive") or workspace:FindFirstChild("RadioactiveMap")
+    if legacy and legacy:IsA("Model") then
+        return legacy
     end
 
-    -- Listen for new activations
-    mapVariants.ChildAdded:Connect(function(child)
-        if child.Name == "Radioactive" and autoObby then
-            runOnce(child)
+    return nil
+end
+
+local function _handleObbyInteract(root)
+    if not root or not humanoidRootPart or not autoObby then return end
+    local obbyEnd = root:FindFirstChild("ObbyEnd")
+    if obbyEnd and humanoidRootPart then
+        pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 0) end)
+        task.wait()
+        pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 1) end)
+    end
+end
+
+local function watchRadioactiveAppearances()
+    -- immediate attempt for existing instances
+    task.spawn(function()
+        local root = findRadioactiveRoot()
+        if root and autoObby then _handleObbyInteract(root) end
+    end)
+
+    -- workspace-level watcher for containers that appear dynamically
+    workspace.ChildAdded:Connect(function(child)
+        if not autoObby then return end
+        if child.Name == "RadioactiveMap_SharedInstances" or child.Name == "Radioactive" then
+            task.delay(0.4, function()
+                local root = findRadioactiveRoot()
+                if root then _handleObbyInteract(root) end
+            end)
         end
     end)
-end)
+
+    -- also listen for obby models appearing under the new shared-instances container
+    local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+    if rms then
+        rms.ChildAdded:Connect(function(child)
+            if not autoObby then return end
+            -- if a model with Obby appears, attempt interaction
+            if child:IsA("Model") and (child:FindFirstChild("ObbyEnd") or string.match(child.Name, "[Oo]bby")) then
+                task.delay(0.25, function() _handleObbyInteract(child) end)
+            end
+        end)
+    end
+end
+
+-- start the watcher (non-blocking)
+watchRadioactiveAppearances()
 
 -- Find EventParts WITHOUT BLOCKING GUI
 task.spawn(function()
@@ -402,28 +452,167 @@ task.spawn(function()
     end
 end)
 
--- Auto Collect UFO Coins Loop
+-- Generic coin collector used by multiple events (UFO, Radioactive)
+local function _collectCoinsFromSources(opts)
+    -- opts:
+    --   rootPart (required): humanoid root part to touch with
+    --   folderCandidates: array of workspace child-names to inspect (optional)
+    --   rootModel: an Instance whose descendants should be searched (optional)
+    --   nameMatchers: array of lowercase substrings to match coin names (optional)
+    --   delayBetween = seconds between individual touches (optional)
+    local rootPart = opts.rootPart
+    if not rootPart then return end
+    local nameMatchers = opts.nameMatchers or {}
+    local delayBetween = tonumber(opts.delayBetween) or 0.05
+
+    local function matchesName(n)
+        if not n then return false end
+        local ln = tostring(n):lower()
+        if #nameMatchers == 0 then return true end
+        for _, m in ipairs(nameMatchers) do
+            if ln:find(m, 1, true) then return true end
+        end
+        return false
+    end
+
+    local function tryCollectFromFolder(folder)
+        if not folder then return end
+        for _, coin in ipairs(folder:GetChildren()) do
+            local ok, cname = pcall(function() return coin.Name end)
+            if ok and matchesName(cname) then
+                local hitbox = coin:FindFirstChild("Hitbox") or coin:FindFirstChildWhichIsA("BasePart")
+                if hitbox and hitbox:IsA("BasePart") then
+                    pcall(function() firetouchinterest(rootPart, hitbox, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(rootPart, hitbox, 1) end)
+                    task.wait(delayBetween)
+                end
+            end
+        end
+    end
+
+    -- 1) explicit folder candidates
+    if opts.folderCandidates then
+        for _, fname in ipairs(opts.folderCandidates) do
+            local f = workspace:FindFirstChild(fname)
+            if f then tryCollectFromFolder(f) end
+        end
+    end
+
+    -- 2) explicit root model (search its descendants for parts matching)
+    if opts.rootModel then
+        for _, d in ipairs(opts.rootModel:GetDescendants()) do
+            if d:IsA("BasePart") then
+                local ok, nm = pcall(function() return d.Name end)
+                if ok and (matchesName(nm) or d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
+                    pcall(function() firetouchinterest(rootPart, d, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(rootPart, d, 1) end)
+                    task.wait(delayBetween)
+                end
+            end
+        end
+    end
+end
+
+-- Auto Collect UFO (now uses generic collector)
 task.spawn(function()
     while scriptRunning do
         if autoCollectUFO then
             pcall(function()
-                local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local folder = workspace:FindFirstChild("UFOEventParts") or workspace:FindFirstChild("UFQEventParts")
-                if not root or not folder then return end
-                for _, coin in ipairs(folder:GetChildren()) do
-                    local name = coin.Name and coin.Name:lower() or ""
-                    if name:find("ufo coin") or name:find("ufo") then
-                        local hitbox = coin:FindFirstChild("Hitbox") or coin:FindFirstChildWhichIsA("BasePart")
-                        if hitbox and hitbox:IsA("BasePart") then
-                            firetouchinterest(root, hitbox, 0)
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                _collectCoinsFromSources({
+                    rootPart = hrp,
+                    folderCandidates = { "UFOEventParts", "UFQEventParts" },
+                    nameMatchers = { "ufo coin", "ufo" },
+                    delayBetween = 0.05,
+                })
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Radioactive (reuses the same collector logic)
+task.spawn(function()
+    while scriptRunning do
+        if active then -- `active` is toggled by the Auto Collect Radioactive UI
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                -- prefer the new shared-instances root, then fallback to common folder names
+                local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+                if rms then
+                    -- search the shared root for coin-like parts
+                    _collectCoinsFromSources({ rootPart = hrp, rootModel = rms, nameMatchers = { "radioactive coin", "radioactive", "RadioactiveMap" }, delayBetween = 0.05 })
+                else
+                    -- fallback folder names (keeps compatibility)
+                    _collectCoinsFromSources({ rootPart = hrp, folderCandidates = { "RadioactiveEventParts", "RadioactiveCoins", "MapVariants" }, nameMatchers = { "radioactive" }, delayBetween = 0.05 })
+                end
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Gold Bar (Money Event) — specifically touch GoldBar.Main (or its BasePart)
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectGoldBar then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("MoneyEventParts")
+                if not hrp or not folder then return end
+                for _, gb in ipairs(folder:GetChildren()) do
+                    if gb.Name == "GoldBar" or gb.Name:lower():find("gold") then
+                        -- prefer the 'Main' part (some maps place the collectible under GoldBar.Main)
+                        local mainPart = gb:FindFirstChild("Main")
+                        if mainPart and mainPart:IsA("BasePart") then
+                            pcall(function() firetouchinterest(hrp, mainPart, 0) end)
                             task.wait()
-                            firetouchinterest(root, hitbox, 1)
+                            pcall(function() firetouchinterest(hrp, mainPart, 1) end)
                             task.wait(0.05)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(gb:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("main") or d.Name:lower():find("gold")) then
+                                    pcall(function() firetouchinterest(hrp, d, 0) end)
+                                    task.wait()
+                                    pcall(function() firetouchinterest(hrp, d, 1) end)
+                                    task.wait(0.05)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
             task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin Money Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinMoneyWheel then
+            pcall(function()
+                local args = { [1] = "Money", [2] = false }
+                local ok, remote = pcall(function()
+                    return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):FindFirstChild("RF/WheelSpin.Roll")
+                end)
+                if ok and remote then
+                    pcall(function() remote:InvokeServer(unpack(args)) end)
+                end
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
         else
             task.wait(0.5)
         end
@@ -1480,7 +1669,7 @@ EventTab:Space()
 
 -- Auto Obby
 EventTab:Toggle({
-    Title = "Auto Obby",
+    Title = "Auto Complete Radioactive Obby",
     Desc = "Automatically completes the obby",
     Value = savedSettings.autoObby,
     Callback = function(state)
@@ -1493,7 +1682,7 @@ EventTab:Toggle({
 -- UFO Event
 EventTab:Section({
     Title = "UFO Event",
-    Opened = false,
+    Opened = true,
 })
 
 EventTab:Toggle({
@@ -1515,6 +1704,76 @@ EventTab:Toggle({
         autoSpinUFO = state
         savedSettings.autoSpinUFO = state
         saveSettings(savedSettings)
+    end
+})
+
+-- Money Event
+EventTab:Section({
+    Title = "Money Event",
+    Opened = true,
+})
+
+EventTab:Toggle({
+    Title = "Auto Collect Gold Bar",
+    Desc = "Automatically collect Gold Bars",
+    Value = savedSettings.autoCollectGoldBar,
+    Callback = function(state)
+        autoCollectGoldBar = state
+        savedSettings.autoCollectGoldBar = state
+        saveSettings(savedSettings)
+    end
+})
+
+EventTab:Toggle({
+    Title = "Auto Spin Money Wheel",
+    Desc = "Automatically spin the money wheel",
+    Value = savedSettings.autoSpinMoneyWheel,
+    Callback = function(state)
+        autoSpinMoneyWheel = state
+        savedSettings.autoSpinMoneyWheel = state
+        saveSettings(savedSettings)
+    end
+})
+
+EventTab:Button({
+    Title = "Auto Complete 3 Money Obbies",
+    Desc = "Automatically complete all 3 money obbies",
+    Callback = function()
+        task.spawn(function()
+            local rootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                pcall(function()
+                    local moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+                    if moneyMap then
+                        -- Complete Obby 1
+                        local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
+                        if obby1End then
+                            firetouchinterest(rootPart, obby1End, 0)
+                            task.wait(0.1)
+                            firetouchinterest(rootPart, obby1End, 1)
+                        end
+                        task.wait(1)
+                        
+                        -- Complete Obby 2
+                        local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
+                        if obby2End then
+                            firetouchinterest(rootPart, obby2End, 0)
+                            task.wait(0.1)
+                            firetouchinterest(rootPart, obby2End, 1)
+                        end
+                        task.wait(1)
+                        
+                        -- Complete Obby 3
+                        local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
+                        if obby3End then
+                            firetouchinterest(rootPart, obby3End, 0)
+                            task.wait(0.1)
+                            firetouchinterest(rootPart, obby3End, 1)
+                        end
+                    end
+                end)
+            end
+        end)
     end
 })
 
@@ -1734,18 +1993,15 @@ task.spawn(function()
     if savedSettings.autoObby then
         autoObby = true
 
-        -- Check for existing obby on script load
+        -- quick-start: try to interact with any existing obby using the resilient finder
         task.spawn(function()
-            local mapVariants = workspace:FindFirstChild("MapVariants")
-            if mapVariants then
-                local existing = mapVariants:FindFirstChild("Radioactive")
-                if existing then
-                    local obbyEnd = existing:WaitForChild("ObbyEnd", 5)
-                    if obbyEnd and humanoidRootPart then
-                        firetouchinterest(humanoidRootPart, obbyEnd, 0)
-                        task.wait()
-                        firetouchinterest(humanoidRootPart, obbyEnd, 1)
-                    end
+            local root = findRadioactiveRoot()
+            if root then
+                local obbyEnd = root:FindFirstChild("ObbyEnd")
+                if obbyEnd and humanoidRootPart then
+                    pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 1) end)
                 end
             end
         end)
@@ -1754,6 +2010,16 @@ task.spawn(function()
     -- Apply Auto Collect UFO
     if savedSettings.autoCollectUFO then
         autoCollectUFO = true
+    end
+
+    -- Apply Auto Collect Gold Bar (Money Event)
+    if savedSettings.autoCollectGoldBar then
+        autoCollectGoldBar = true
+    end
+
+    -- Apply Auto Spin Money Wheel
+    if savedSettings.autoSpinMoneyWheel then
+        autoSpinMoneyWheel = true
     end
 
     -- Apply Auto Spin UFO Wheel

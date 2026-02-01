@@ -1566,36 +1566,17 @@ UtilitiesSection:Slider({
 -- Buttons moved from Main (simplified)
 local SellAllBtn = UpgBase:Button({
     Title = "Sell All Inventory",
-    Desc = "Sell your entire inventory (confirmation required)",
+    Desc = "Sell your entire inventory",
     Locked = false,
     Callback = function()
-        WindUI:Popup({
-            Title = "Confirm Sell All",
-            Icon = "alert-triangle",
-            Content = "Are you sure you want to sell your entire inventory?",
-            Buttons = {
-                {
-                    Title = "Cancel",
-                    Callback = function() end,
-                    Variant = "Tertiary",
-                },
-                {
-                    Title = "Sell All",
-                    Icon = "shopping-cart",
-                    Callback = function()
-                        local ok, err = pcall(function()
-                            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
-                        end)
-                        if ok then
-                            WindUI:Notify({ Title = "Sold", Content = "All inventory items sold!", Icon = "check", Duration = 3 })
-                        else
-                            WindUI:Notify({ Title = "Sell All", Content = "Failed to sell: "..tostring(err), Icon = "alert-triangle", Duration = 4 })
-                        end
-                    end,
-                    Variant = "Primary",
-                }
-            }
-        })
+        local ok, err = pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+        end)
+        if ok then
+            WindUI:Notify({ Title = "Sold", Content = "All inventory items sold!", Icon = "check", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Sell All", Content = "Failed to sell: "..tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
     end
 })
 

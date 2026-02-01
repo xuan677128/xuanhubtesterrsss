@@ -1566,23 +1566,37 @@ UtilitiesSection:Slider({
 -- Buttons moved from Main (simplified)
 local SellAllBtn = UpgBase:Button({
     Title = "Sell All Inventory",
-    Desc = "Sell your entire inventory",
+    Desc = "Double-click to sell your entire inventory",
     Locked = false,
     Callback = function()
-            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
-if nobrainrots then
-            WindUI:Notify({
-                Title = "Sold",
-                Content = "You don't have any Brainrots in your Inventory.",
-                Icon = "alert-triangle",
-                Duration = 3,
-            })
+        local currentTime = tick()
+        if currentTime - lastSellAllClick < 2 then
+            -- Double-click detected
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+            if result == false or result == nil then
+                WindUI:Notify({
+                    Title = "Sold",
+                    Content = "You don't have any Brainrots in your Inventory.",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+            else
+                WindUI:Notify({
+                    Title = "Sold",
+                    Content = "Successfully Sold All Brainrots!",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+            lastSellAllClick = 0
         else
+            -- First click
+            lastSellAllClick = currentTime
             WindUI:Notify({
-                Title = "Sold",
-                Content = "Successfully Sold All Brainrots!",
-                Icon = "check",
-                Duration = 3,
+                Title = "Sell All",
+                Content = "Click again to confirm",
+                Icon = "alert-triangle",
+                Duration = 2,
             })
         end
     end

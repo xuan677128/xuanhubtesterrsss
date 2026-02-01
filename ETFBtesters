@@ -1569,14 +1569,8 @@ local SellAllBtn = UpgBase:Button({
     Desc = "Sell your entire inventory",
     Locked = false,
     Callback = function()
-        local ok, err = pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
-        end)
-        if ok then
-            WindUI:Notify({ Title = "Sold", Content = "All inventory items sold!", Icon = "check", Duration = 3 })
-        else
-            WindUI:Notify({ Title = "Sell All", Content = "Failed to sell: "..tostring(err), Icon = "alert-triangle", Duration = 4 })
-        end
+        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+        WindUI:Notify({ Title = "Sold", Content = "All inventory items sold!", Icon = "check", Duration = 3 })
     end
 })
 

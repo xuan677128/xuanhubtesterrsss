@@ -1623,7 +1623,7 @@ UpgBase:Button({
 -- ================= EVENT TAB =================
 local RadioactiveSection = EventTab:Section({
     Title = "Radioactive Event",
-    Opened = true,
+    Opened = false,
 })
 
 -- Auto Collect Radioactive
@@ -1748,27 +1748,36 @@ MoneySection:Button({
                         -- Complete Obby 1
                         local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
                         if obby1End then
-                            firetouchinterest(rootPart, obby1End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby1End, 1)
+                            local touchInterest = obby1End:FindFirstChild("TouchInterest")
+                            if touchInterest then
+                                firetouchinterest(rootPart, touchInterest, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, touchInterest, 1)
+                            end
                         end
                         task.wait(1)
                         
                         -- Complete Obby 2
                         local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
                         if obby2End then
-                            firetouchinterest(rootPart, obby2End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby2End, 1)
+                            local touchInterest = obby2End:FindFirstChild("TouchInterest")
+                            if touchInterest then
+                                firetouchinterest(rootPart, touchInterest, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, touchInterest, 1)
+                            end
                         end
                         task.wait(1)
                         
                         -- Complete Obby 3
                         local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
                         if obby3End then
-                            firetouchinterest(rootPart, obby3End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby3End, 1)
+                            local touchInterest = obby3End:FindFirstChild("TouchInterest")
+                            if touchInterest then
+                                firetouchinterest(rootPart, touchInterest, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, touchInterest, 1)
+                            end
                         end
                     end
                 end)

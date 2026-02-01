@@ -1736,52 +1736,58 @@ MoneySection:Toggle({
 })
 
 MoneySection:Button({
-    Title = "Auto Complete 3 Money Obbies",
-    Desc = "Automatically complete all 3 money obbies",
+    Title = "Complete Money Obbies",
+    Desc = "Complete all 3 money obbies (1s delay each)",
     Callback = function()
         task.spawn(function()
-            local rootPart = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if rootPart then
-                pcall(function()
-                    local moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
-                    if moneyMap then
-                        -- Complete Obby 1
-                        local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
-                        if obby1End then
-                            local touchInterest = obby1End:FindFirstChild("TouchInterest")
-                            if touchInterest then
-                                firetouchinterest(rootPart, touchInterest, 0)
-                                task.wait(0.1)
-                                firetouchinterest(rootPart, touchInterest, 1)
-                            end
-                        end
-                        task.wait(1)
-                        
-                        -- Complete Obby 2
-                        local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
-                        if obby2End then
-                            local touchInterest = obby2End:FindFirstChild("TouchInterest")
-                            if touchInterest then
-                                firetouchinterest(rootPart, touchInterest, 0)
-                                task.wait(0.1)
-                                firetouchinterest(rootPart, touchInterest, 1)
-                            end
-                        end
-                        task.wait(1)
-                        
-                        -- Complete Obby 3
-                        local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
-                        if obby3End then
-                            local touchInterest = obby3End:FindFirstChild("TouchInterest")
-                            if touchInterest then
-                                firetouchinterest(rootPart, touchInterest, 0)
-                                task.wait(0.1)
-                                firetouchinterest(rootPart, touchInterest, 1)
-                            end
-                        end
-                    end
-                end)
+            local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart then
+                WindUI:Notify({ Title = "Money Event", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 })
+                return
             end
+            
+            local moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+            if not moneyMap then
+                WindUI:Notify({ Title = "Money Event", Content = "MoneyMap not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            -- Complete Obby 1 first
+            local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
+            if obby1End and obby1End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby1End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby1End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 1", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Complete Obby 2 second
+            local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
+            if obby2End and obby2End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby2End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby2End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 2", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Complete Obby 3 last
+            local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
+            if obby3End and obby3End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby3End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby3End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 3", Icon = "check", Duration = 2 })
+            end
+            
+            WindUI:Notify({ Title = "Money Event", Content = "All obbies completed!", Icon = "check", Duration = 3 })
         end)
     end
 })

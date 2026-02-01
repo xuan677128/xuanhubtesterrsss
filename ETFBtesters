@@ -1367,6 +1367,36 @@ local UpgCarryOnce = UpgBase:Button({
     end
 })
 
+-- Bring Back Celestial Timer
+UpgBase:Button({
+    Title = "Bring Back Celestial Timer",
+    Desc = "Show the Celestial Timer visibility",
+    Locked = false,
+    Callback = function()
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui then
+            local celestialTimer = playerGui:FindFirstChild("CelestialTimeLeft")
+            if celestialTimer then
+                celestialTimer.Enabled = not celestialTimer.Enabled
+                local status = celestialTimer.Enabled and "shown" or "hidden"
+                WindUI:Notify({
+                    Title = "Celestial Timer",
+                    Content = "Timer " .. status,
+                    Icon = "check",
+                    Duration = 3,
+                })
+            else
+                WindUI:Notify({
+                    Title = "Celestial Timer",
+                    Content = "Timer not found",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
 -- Unlock Zoom Limit
 UtilitiesSection:Toggle({
     Title = "Unlock Zoom Limit",
@@ -1761,6 +1791,18 @@ MoneySection:Button({
                     firetouchinterest(rootPart, obby1End, 1)
                 end)
                 WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 1", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Touch Checkpoint 3 before Obby 2
+            local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
+            if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, checkpoint3, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, checkpoint3, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Reached Checkpoint 3", Icon = "check", Duration = 2 })
                 task.wait(1)
             end
             

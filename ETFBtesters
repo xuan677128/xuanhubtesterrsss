@@ -1569,8 +1569,8 @@ local SellAllBtn = UpgBase:Button({
     Desc = "Sell your entire inventory",
     Locked = false,
     Callback = function()
-        local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
-        if result == false or result == nil then
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+if nobrainrots then
             WindUI:Notify({
                 Title = "Sold",
                 Content = "You don't have any Brainrots in your Inventory.",

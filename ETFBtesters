@@ -820,10 +820,6 @@ local function disableUnlockZoom()
 end
 
 -- ================= GOD MODE HELPERS =================
-local RunService = game:GetService("RunService")
-local godModeConns = {}
-local godModeCharConn = nil
-
 local function applyGodModeToCharacter(char)
     if not char then return end
     -- run async to wait for the character to be ready
@@ -875,18 +871,6 @@ end
 local function enableGodMode()
     if godModeEnabled then return end
     godModeEnabled = true
-    
-    -- Destroy tsunami kill remote
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local packages = ReplicatedStorage:FindFirstChild("Packages")
-    if packages then
-        local net = packages:FindFirstChild("Net")
-        if net then
-            local kill = net:FindFirstChild("RE/TsunamiEventService/Kill")
-            if kill then kill:Destroy() end
-        end
-    end
-    
     if player.Character then
         applyGodModeToCharacter(player.Character)
     end
@@ -918,6 +902,7 @@ local function disableGodMode()
     end
     WindUI:Notify({ Title = "Main", Content = "God Mode disabled", Icon = "check", Duration = 3 })
 end
+
 
 -- ================= TSUNAMI TRACKER =================
 -- Creates a small ScreenGui that shows distance & color-coded status for nearby tsunamis

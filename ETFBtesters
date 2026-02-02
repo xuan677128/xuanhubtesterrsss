@@ -822,14 +822,16 @@ end
 -- ================= GOD MODE HELPERS =================
 local godModeHealthConn = nil
 
-local function enableGodMode()
-    if godModeEnabled then return end
-    godModeEnabled = true
-    
-    local character = player.Character
-    if not character then return end
-    local humanoid = character:FindFirstChild("Humanoid")
+local function applyGodMode(char)
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid then return end
+    
+    -- Disconnect old connection
+    if godModeHealthConn then
+        godModeHealthConn:Disconnect()
+        godModeHealthConn = nil
+    end
     
     -- Set infinite health
     pcall(function()
@@ -858,19 +860,31 @@ local function enableGodMode()
     end)
     
     -- Disable touch on all character parts
-    for _, part in pairs(character:GetDescendants()) do
+    for _, part in pairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
             pcall(function() part.CanTouch = false end)
         end
     end
+end
+
+local function enableGodMode()
+    if godModeEnabled then return end
+    godModeEnabled = true
     
-    -- Handle character respawn
-    godModeCharConn = player.CharacterAdded:Connect(function(char)
-        task.wait(0.5)
-        if godModeEnabled then
-            enableGodMode()
-        end
-    end)
+    -- Apply to current character
+    if player.Character then
+        applyGodMode(player.Character)
+    end
+    
+    -- Handle character respawn (only set up once)
+    if not godModeCharConn then
+        godModeCharConn = player.CharacterAdded:Connect(function(char)
+            task.wait(0.5)
+            if godModeEnabled then
+                applyGodMode(char)
+            end
+        end)
+    end
     
     WindUI:Notify({ Title = "Main", Content = "God Mode enabled", Icon = "check", Duration = 3 })
 end

@@ -867,7 +867,14 @@ task.spawn(function()
                             if rarityFolder then
                                 -- Add all brainrot names from this rarity
                                 for _, brainrot in ipairs(rarityFolder:GetChildren()) do
-                                    brainrotsToSell[brainrot.Name] = true
+                                    local dataChild = brainrot:FindFirstChild("Data")
+                                    if dataChild then
+                                        local nameValue = dataChild:FindFirstChild("Name")
+                                        if nameValue then
+                                            local brainrotName = nameValue.Value or nameValue.Name
+                                            brainrotsToSell[brainrotName] = true
+                                        end
+                                    end
                                 end
                             end
                         end
@@ -878,17 +885,20 @@ task.spawn(function()
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
                     
-                    if tool:IsA("Tool") and brainrotsToSell[tool.Name] then
-                        -- Equip the tool
-                        humanoid:EquipTool(tool)
-                        task.wait(0.15)
-                        
-                        -- Sell it
-                        pcall(function()
-                            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
-                                :WaitForChild("SellTool"):InvokeServer()
-                        end)
-                        task.wait(0.2)
+                    if tool:IsA("Tool") then
+                        local brainrotName = tool:GetAttribute("BrainrotName")
+                        if brainrotName and brainrotsToSell[brainrotName] then
+                            -- Equip the tool
+                            humanoid:EquipTool(tool)
+                            task.wait(0.15)
+                            
+                            -- Sell it
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
+                                    :WaitForChild("SellTool"):InvokeServer()
+                            end)
+                            task.wait(0.2)
+                        end
                     end
                 end
             end)

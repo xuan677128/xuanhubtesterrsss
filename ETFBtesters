@@ -43,8 +43,6 @@ local defaultSettings = {
     autoSpinMoneyWheel = false,
     -- Money Event (Gold Bar)
     autoCollectGoldBar = false,
-    -- Money Obby Auto Complete
-    autoCompleteMoneyObby = false,
     -- Unlock Zoom
     unlockZoom = false,
     -- God Mode
@@ -208,9 +206,6 @@ local prevCameraMax = nil
 local godModeEnabled = false
 local godModeCharConn = nil
 local godModeConns = {} -- map character -> {conns = {...}, modified = {...} }
-
--- Auto Complete Money Obby state
-local autoCompleteMoneyObby = false
 
 -- Sell All confirmation
 local lastSellAllClick = 0
@@ -644,105 +639,6 @@ task.spawn(function()
             task.wait(delayValue)
         else
             task.wait(0.5)
-        end
-    end
-end)
-
--- Auto Complete Money Obby Loop (fires 3x then waits 15 minutes)
-task.spawn(function()
-    while scriptRunning do
-        if autoCompleteMoneyObby then
-            -- First, wait until MoneyMap_SharedInstances appears
-            local moneyMap = nil
-            while autoCompleteMoneyObby and not moneyMap do
-                moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
-                if not moneyMap then
-                    task.wait(2) -- Check every 2 seconds
-                end
-            end
-            
-            -- If toggle was disabled while waiting, skip this cycle
-            if not autoCompleteMoneyObby then
-                task.wait(1)
-            else
-                -- Found the money map
-            WindUI:Notify({ Title = "Money Obby", Content = "Money Event found! Starting...", Icon = "check", Duration = 2 })
-            
-            -- Run the obby completion sequence 3 times
-            for cycleCount = 1, 3 do
-                if not autoCompleteMoneyObby then break end
-                
-                local completed = false
-                pcall(function()
-                    local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                    if not rootPart then return end
-                    
-                    -- Re-check moneyMap exists
-                    moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
-                    if not moneyMap then return end
-                    
-                    -- Complete Obby 1
-                    local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
-                    if obby1End and obby1End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby1End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby1End, 1)
-                        end)
-                        task.wait(1)
-                    end
-                    
-                    -- Touch Checkpoint 3
-                    local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
-                    if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, checkpoint3, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, checkpoint3, 1)
-                        end)
-                        task.wait(1)
-                    end
-                    
-                    -- Complete Obby 2
-                    local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
-                    if obby2End and obby2End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby2End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby2End, 1)
-                        end)
-                        task.wait(1)
-                    end
-                    
-                    -- Complete Obby 3
-                    local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
-                    if obby3End and obby3End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby3End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby3End, 1)
-                        end)
-                    end
-                    
-                    completed = true
-                end)
-                
-                -- Notify after each cycle
-                if completed then
-                    WindUI:Notify({ Title = "Money Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon = "check", Duration = 2 })
-                end
-                
-                if cycleCount < 3 then
-                    task.wait(2) -- Small delay between cycles
-                end
-            end
-            
-                -- All 3 cycles complete, wait 15 minutes
-                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
-                task.wait(900) -- 15 minutes = 900 seconds
-            end
-        else
-            task.wait(1)
         end
     end
 end)
@@ -1873,14 +1769,72 @@ MoneySection:Toggle({
     end
 })
 
-MoneySection:Toggle({
-    Title = "Auto Complete Money Obbies",
-    Desc = "Auto complete obbies 3x then wait 15min",
-    Value = savedSettings.autoCompleteMoneyObby,
-    Callback = function(state)
-        autoCompleteMoneyObby = state
-        savedSettings.autoCompleteMoneyObby = state
-        saveSettings(savedSettings)
+MoneySection:Button({
+    Title = "Complete Money Obbies",
+    Desc = "Complete all 3 money obbies (1s delay each)",
+    Callback = function()
+        task.spawn(function()
+            local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart then
+                WindUI:Notify({ Title = "Money Event", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            local moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+            if not moneyMap then
+                WindUI:Notify({ Title = "Money Event", Content = "MoneyMap not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            -- Complete Obby 1 first
+            local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
+            if obby1End and obby1End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby1End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby1End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 1", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Touch Checkpoint 3 before Obby 2
+            local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
+            if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, checkpoint3, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, checkpoint3, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Reached Checkpoint 3", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Complete Obby 2 second
+            local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
+            if obby2End and obby2End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby2End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby2End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 2", Icon = "check", Duration = 2 })
+                task.wait(1)
+            end
+            
+            -- Complete Obby 3 last
+            local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
+            if obby3End and obby3End:FindFirstChild("TouchInterest") then
+                pcall(function()
+                    firetouchinterest(rootPart, obby3End, 0)
+                    task.wait(0.1)
+                    firetouchinterest(rootPart, obby3End, 1)
+                end)
+                WindUI:Notify({ Title = "Money Event", Content = "Completed Obby 3", Icon = "check", Duration = 2 })
+            end
+            
+            WindUI:Notify({ Title = "Money Event", Content = "All obbies completed!", Icon = "check", Duration = 3 })
+        end)
     end
 })
 
@@ -2122,11 +2076,6 @@ task.spawn(function()
     -- Apply Auto Collect Gold Bar (Money Event)
     if savedSettings.autoCollectGoldBar then
         autoCollectGoldBar = true
-    end
-
-    -- Apply Auto Complete Money Obby
-    if savedSettings.autoCompleteMoneyObby then
-        autoCompleteMoneyObby = true
     end
 
     -- Apply Auto Spin Money Wheel

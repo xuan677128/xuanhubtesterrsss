@@ -49,13 +49,16 @@ local defaultSettings = {
     -- God Mode
     godMode = false,
     -- Tsunami tracker
-	autoTsunamiTracker = false,
-	-- Wider hitbox (tool reach)
-	hitboxEnabled = false,
-	hitboxWidth = 70,
+    autoTsunamiTracker = false,
+    -- Wider hitbox (tool reach)
+    hitboxEnabled = false,
+    hitboxWidth = 70,
+	-- Auto Sell by Rarity
+	autoSellByRarity = false,
+	sellRarities = {},
 }
 
-local function loadSettings()
+    local function loadSettings()
     if not isfolder("XuanHub") then
         makefolder("XuanHub")
     end
@@ -108,7 +111,6 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
         Anonymous = false,
     },
-
 })
 
 WindUI:Gradient({
@@ -212,6 +214,10 @@ local godModeConns = {} -- map character -> {conns = {...}, modified = {...} }
 -- Auto Complete Money Obby state
 local autoCompleteMoneyObby = false
 
+-- Auto Sell by Rarity state
+local autoSellByRarity = false
+local sellRarities = {}
+
 -- Sell All confirmation
 local lastSellAllClick = 0
 
@@ -298,7 +304,7 @@ task.spawn(function()
         if spinning then
             pcall(function()
                 game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                "RF/WheelSpin.Roll"):InvokeServer()
+                    "RF/WheelSpin.Roll"):InvokeServer()
             end)
             -- Get delay from input box with validation
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
@@ -400,7 +406,7 @@ task.spawn(function()
                             tostring(i)
                         }
                         local PlotAction = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild(
-                        "Net"):WaitForChild("RF/Plot.PlotAction")
+                            "Net"):WaitForChild("RF/Plot.PlotAction")
                         PlotAction:InvokeServer(unpack(args))
                     end)
                     task.wait(0.01)
@@ -565,7 +571,8 @@ task.spawn(function()
             pcall(function()
                 local args = { [1] = "Money", [2] = false }
                 local ok, remote = pcall(function()
-                    return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):FindFirstChild("RF/WheelSpin.Roll")
+                    return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net")
+                    :FindFirstChild("RF/WheelSpin.Roll")
                 end)
                 if ok and remote then
                     pcall(function() remote:InvokeServer(unpack(args)) end)
@@ -591,7 +598,7 @@ task.spawn(function()
                 if success and args then
                     pcall(function()
                         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                        "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+                            "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
                     end)
                 end
             end)
@@ -618,27 +625,28 @@ task.spawn(function()
                     task.wait(2) -- Check every 2 seconds
                 end
             end
-            
+
             -- If toggle was disabled while waiting, skip this cycle
             if not autoObby then
                 task.wait(1)
             else
                 -- Found the radioactive map
-                WindUI:Notify({ Title = "Radioactive Obby", Content = "Radioactive Event found! Starting...", Icon = "check", Duration = 2 })
-                
+                WindUI:Notify({ Title = "Radioactive Obby", Content = "Radioactive Event found! Starting...", Icon =
+                "check", Duration = 2 })
+
                 -- Run the obby completion sequence 3 times
                 for cycleCount = 1, 3 do
                     if not autoObby then break end
-                    
+
                     local completed = false
                     pcall(function()
                         local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                         if not rootPart then return end
-                        
+
                         -- Re-check radioactiveMap exists
                         local obbyRoot = findRadioactiveRoot()
                         if not obbyRoot then return end
-                        
+
                         -- Complete Obby
                         local obbyEnd = obbyRoot:FindFirstChild("ObbyEnd")
                         if obbyEnd and obbyEnd:FindFirstChild("TouchInterest") then
@@ -648,20 +656,21 @@ task.spawn(function()
                                 firetouchinterest(rootPart, obbyEnd, 1)
                             end)
                         end
-                        
+
                         completed = true
                     end)
-                    
+
                     -- Notify after each cycle
                     if completed then
-                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon = "check", Duration = 2 })
+                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon =
+                        "check", Duration = 2 })
                     end
-                    
+
                     if cycleCount < 3 then
                         task.wait(2) -- Small delay between cycles
                     end
                 end
-                
+
                 -- All 3 cycles complete, wait 15 minutes
                 WindUI:Notify({ Title = "Radioactive Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
                 task.wait(900) -- 15 minutes = 900 seconds
@@ -684,85 +693,86 @@ task.spawn(function()
                     task.wait(2) -- Check every 2 seconds
                 end
             end
-            
+
             -- If toggle was disabled while waiting, skip this cycle
             if not autoCompleteMoneyObby then
                 task.wait(1)
             else
                 -- Found the money map
-            WindUI:Notify({ Title = "Money Obby", Content = "Money Event found! Starting...", Icon = "check", Duration = 2 })
-            
-            -- Run the obby completion sequence 3 times
-            for cycleCount = 1, 3 do
-                if not autoCompleteMoneyObby then break end
-                
-                local completed = false
-                pcall(function()
-                    local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                    if not rootPart then return end
-                    
-                    -- Re-check moneyMap exists
-                    moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
-                    if not moneyMap then return end
-                    
-                    -- Complete Obby 1
-                    local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
-                    if obby1End and obby1End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby1End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby1End, 1)
-                        end)
-                        task.wait(1)
+                WindUI:Notify({ Title = "Money Obby", Content = "Money Event found! Starting...", Icon = "check", Duration = 2 })
+
+                -- Run the obby completion sequence 3 times
+                for cycleCount = 1, 3 do
+                    if not autoCompleteMoneyObby then break end
+
+                    local completed = false
+                    pcall(function()
+                        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not rootPart then return end
+
+                        -- Re-check moneyMap exists
+                        moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+                        if not moneyMap then return end
+
+                        -- Complete Obby 1
+                        local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
+                        if obby1End and obby1End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby1End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby1End, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Touch Checkpoint 3
+                        local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
+                        if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, checkpoint3, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, checkpoint3, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Complete Obby 2
+                        local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
+                        if obby2End and obby2End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby2End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby2End, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Complete Obby 3
+                        local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
+                        if obby3End and obby3End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby3End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby3End, 1)
+                            end)
+                        end
+
+                        completed = true
+                    end)
+
+                    -- Notify after each cycle
+                    if completed then
+                        WindUI:Notify({ Title = "Money Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon =
+                        "check", Duration = 2 })
                     end
-                    
-                    -- Touch Checkpoint 3
-                    local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
-                    if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, checkpoint3, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, checkpoint3, 1)
-                        end)
-                        task.wait(1)
+
+                    if cycleCount < 3 then
+                        task.wait(2) -- Small delay between cycles
                     end
-                    
-                    -- Complete Obby 2
-                    local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
-                    if obby2End and obby2End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby2End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby2End, 1)
-                        end)
-                        task.wait(1)
-                    end
-                    
-                    -- Complete Obby 3
-                    local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
-                    if obby3End and obby3End:FindFirstChild("TouchInterest") then
-                        pcall(function()
-                            firetouchinterest(rootPart, obby3End, 0)
-                            task.wait(0.1)
-                            firetouchinterest(rootPart, obby3End, 1)
-                        end)
-                    end
-                    
-                    completed = true
-                end)
-                
-                -- Notify after each cycle
-                if completed then
-                    WindUI:Notify({ Title = "Money Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon = "check", Duration = 2 })
                 end
-                
-                if cycleCount < 3 then
-                    task.wait(2) -- Small delay between cycles
-                end
-            end
-            
+
                 -- All 3 cycles complete, wait 15 minutes
-                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done", Icon = "clock", Duration = 3 })
+                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
                 task.wait(900) -- 15 minutes = 900 seconds
             end
         else
@@ -777,7 +787,7 @@ task.spawn(function()
         if autoUpgradeBase then
             pcall(function()
                 game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                "RE/Plot.UpgradeBase"):FireServer()
+                    "RE/Plot.UpgradeBase"):FireServer()
             end)
             task.wait(0.5)
         else
@@ -824,6 +834,52 @@ task.spawn(function()
             pcall(function()
                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("Rebirth")
                     :InvokeServer()
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Sell by Rarity Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSellByRarity and #sellRarities > 0 then
+            pcall(function()
+                local backpack = player:FindFirstChild("Backpack")
+                local character = player.Character
+                if not backpack or not character then return end
+                
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return end
+                
+                -- Scan backpack for matching rarities
+                for _, tool in ipairs(backpack:GetChildren()) do
+                    if not autoSellByRarity then break end
+                    
+                    if tool:IsA("Tool") then
+                        local rarityAttr = tool:GetAttribute("Rarity")
+                        if rarityAttr then
+                            -- Check if this rarity should be sold
+                            for _, targetRarity in ipairs(sellRarities) do
+                                if rarityAttr:lower() == targetRarity:lower() then
+                                    -- Equip the tool
+                                    humanoid:EquipTool(tool)
+                                    task.wait(0.15)
+                                    
+                                    -- Sell it
+                                    pcall(function()
+                                        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
+                                            :WaitForChild("SellTool"):InvokeServer()
+                                    end)
+                                    task.wait(0.2)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
             end)
             task.wait(1)
         else
@@ -1194,7 +1250,7 @@ TsunamiSection:Button({
 
         for _, g in ipairs(gaps) do
             local part = (g:IsA("BasePart") and g) or
-            (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
+                (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
             if part then
                 local rel = part.Position - pos
                 local proj = rel:Dot(look)
@@ -1239,7 +1295,7 @@ TsunamiSection:Button({
 
         for _, g in ipairs(gaps) do
             local part = (g:IsA("BasePart") and g) or
-            (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
+                (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
             if part then
                 local rel = part.Position - pos
                 local proj = rel:Dot(look)
@@ -1278,7 +1334,7 @@ _G.PostWaveBuffer = 0.05
 local function GetNearestGapIndex()
     local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
     local hrp = game.Players.LocalPlayer.Character and
-    game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not gaps or not hrp then return 1 end
     local nearestIndex, minDistance = 1, math.huge
     for i = 1, 9 do
@@ -1300,7 +1356,7 @@ local function IsPathClear(targetPos)
     local tsunamiFolder = workspace:FindFirstChild("ActiveTsunamis")
     if not tsunamiFolder then return true end
     local hrp = game.Players.LocalPlayer.Character and
-    game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return true end
     local padding = 45
     local currentPos = hrp.Position
@@ -1435,7 +1491,7 @@ local UpgBaseOnce = UpgBase:Button({
     Callback = function()
         pcall(function()
             game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-            "RE/Plot.UpgradeBase"):FireServer()
+                "RE/Plot.UpgradeBase"):FireServer()
         end)
         WindUI:Notify({
             Title = "Upgraded",
@@ -1593,7 +1649,8 @@ local function _applyWiderHitboxes()
                 end
                 targetPos = total / #nearby
             end
-            local finalSize = ( #nearby == 1 ) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or MAX_SIZE
+            local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or
+            MAX_SIZE
             hb.Size = finalSize
             hb.Position = targetPos
             hb.Transparency = 0.7
@@ -1609,8 +1666,12 @@ local function startWiderHitbox()
         if widerHitboxEnabled then _applyWiderHitboxes() end
     end)
     -- react to tool/character changes
-    LocalPlayer.Backpack.ChildAdded:Connect(function(child) task.wait(0.1); _collectToolHitboxes() end)
-    LocalPlayer.CharacterAdded:Connect(function() task.wait(1); _collectToolHitboxes() end)
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+        task.wait(0.1); _collectToolHitboxes()
+    end)
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1); _collectToolHitboxes()
+    end)
     WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox enabled", Icon = "check", Duration = 2 })
 end
 
@@ -1670,7 +1731,8 @@ local SellAllBtn = UpgBase:Button({
         local currentTime = tick()
         if currentTime - lastSellAllClick < 2 then
             -- Double-click detected
-            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll")
+            :InvokeServer()
             if result == false or result == nil then
                 WindUI:Notify({
                     Title = "Sold",
@@ -1745,7 +1807,7 @@ UpgBase:Button({
             WindUI:Notify({ Title = "VIP Walls", Content = "VIP Walls unlocked", Icon = "check", Duration = 3 })
         end)
         if not ok then
-            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: "..tostring(err), Icon = "alert-triangle", Duration = 4 })
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
         end
     end
 })
@@ -1868,7 +1930,7 @@ MoneySection:Toggle({
 
 MoneySection:Toggle({
     Title = "Auto Complete Money Obbies",
-    Desc = "Auto complete obbies",
+    Desc = "Auto complete obbies 3x then wait 15min",
     Value = savedSettings.autoCompleteMoneyObby,
     Callback = function(state)
         autoCompleteMoneyObby = state
@@ -1955,6 +2017,64 @@ local AutoRebirthToggle = AutoSection:Toggle({
     end
 })
 
+AutoSection:Space()
+
+-- Auto Sell by Rarity Dropdown
+AutoSection:Dropdown({
+    Title = "Select Rarities to Sell",
+    Desc = "Choose which rarities to auto-sell",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret" },
+    Value = savedSettings.sellRarities or {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        sellRarities = selected
+        savedSettings.sellRarities = selected
+        saveSettings(savedSettings)
+        
+        if #selected > 0 then
+            local rarityList = table.concat(selected, ", ")
+            WindUI:Notify({
+                Title = "Auto Sell",
+                Content = "Will sell: " .. rarityList,
+                Icon = "check",
+                Duration = 3,
+            })
+        end
+    end
+})
+
+-- Auto Sell by Rarity Toggle
+AutoSection:Toggle({
+    Title = "Auto Sell by Rarity",
+    Desc = "Automatically sell selected rarities",
+    Value = savedSettings.autoSellByRarity,
+    Callback = function(state)
+        autoSellByRarity = state
+        savedSettings.autoSellByRarity = state
+        saveSettings(savedSettings)
+        
+        if state then
+            if #sellRarities == 0 then
+                WindUI:Notify({
+                    Title = "Auto Sell",
+                    Content = "Please select rarities first!",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+                autoSellByRarity = false
+            else
+                WindUI:Notify({
+                    Title = "Auto Sell",
+                    Content = "Auto Sell enabled",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
 -- ================= MISC TAB =================
 local MiscSettings = MiscTab:Section({
     Title = "Game Settings",
@@ -1999,7 +2119,7 @@ ServerGroup:Button({
     Callback = function()
         local servers = {}
         local req = game:HttpGet("https://games.roblox.com/v1/games/" ..
-        game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
+            game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
         local body = HttpService:JSONDecode(req)
 
         if body and body.data then
@@ -2073,6 +2193,12 @@ task.spawn(function()
         autoRebirth = true
     end
 
+    -- Apply Auto Sell by Rarity
+    if savedSettings.autoSellByRarity then
+        autoSellByRarity = true
+        sellRarities = savedSettings.sellRarities or {}
+    end
+
     -- Apply Auto Obby
     if savedSettings.autoObby then
         autoObby = true
@@ -2106,6 +2232,12 @@ task.spawn(function()
         autoCompleteMoneyObby = true
     end
 
+    -- Apply Auto Sell by Rarity
+    if savedSettings.autoSellByRarity then
+        autoSellByRarity = true
+        sellRarities = savedSettings.sellRarities or {}
+    end
+
     -- Apply Auto Spin Money Wheel
     if savedSettings.autoSpinMoneyWheel then
         autoSpinMoneyWheel = true
@@ -2130,7 +2262,7 @@ task.spawn(function()
     if savedSettings.autoTsunamiTracker then
         enableTsunamiTracker()
     end
-    
+
     -- Apply Wider Hitbox
     if savedSettings.hitboxEnabled then
         widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70

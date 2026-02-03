@@ -108,6 +108,7 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
         Anonymous = false,
     },
+
 })
 
 WindUI:Gradient({
@@ -1867,7 +1868,7 @@ MoneySection:Toggle({
 
 MoneySection:Toggle({
     Title = "Auto Complete Money Obbies",
-    Desc = "Auto complete obbies 3x then wait 15min",
+    Desc = "Auto complete obbies",
     Value = savedSettings.autoCompleteMoneyObby,
     Callback = function(state)
         autoCompleteMoneyObby = state

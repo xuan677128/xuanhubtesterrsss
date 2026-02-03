@@ -854,30 +854,41 @@ task.spawn(function()
                 local humanoid = character:FindFirstChild("Humanoid")
                 if not humanoid then return end
                 
-                -- Scan backpack for matching rarities
-                for _, tool in ipairs(backpack:GetChildren()) do
-                    if not autoSellByRarity then break end
-                    
-                    if tool:IsA("Tool") then
-                        local rarityAttr = tool:GetAttribute("Rarity")
-                        if rarityAttr then
-                            -- Check if this rarity should be sold
-                            for _, targetRarity in ipairs(sellRarities) do
-                                if rarityAttr:lower() == targetRarity:lower() then
-                                    -- Equip the tool
-                                    humanoid:EquipTool(tool)
-                                    task.wait(0.15)
-                                    
-                                    -- Sell it
-                                    pcall(function()
-                                        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
-                                            :WaitForChild("SellTool"):InvokeServer()
-                                    end)
-                                    task.wait(0.2)
-                                    break
+                -- Build list of brainrot names to sell from ReplicatedStorage
+                local brainrotsToSell = {}
+                local replicatedStorage = game:GetService("ReplicatedStorage")
+                local assetsFolder = replicatedStorage:FindFirstChild("Assets")
+                if assetsFolder then
+                    local brainrotsFolder = assetsFolder:FindFirstChild("Brainrots")
+                    if brainrotsFolder then
+                        for _, targetRarity in ipairs(sellRarities) do
+                            -- Find the rarity folder (e.g., "Celestials", "Common", etc.)
+                            local rarityFolder = brainrotsFolder:FindFirstChild(targetRarity)
+                            if rarityFolder then
+                                -- Add all brainrot names from this rarity
+                                for _, brainrot in ipairs(rarityFolder:GetChildren()) do
+                                    brainrotsToSell[brainrot.Name] = true
                                 end
                             end
                         end
+                    end
+                end
+                
+                -- Scan backpack for matching brainrots
+                for _, tool in ipairs(backpack:GetChildren()) do
+                    if not autoSellByRarity then break end
+                    
+                    if tool:IsA("Tool") and brainrotsToSell[tool.Name] then
+                        -- Equip the tool
+                        humanoid:EquipTool(tool)
+                        task.wait(0.15)
+                        
+                        -- Sell it
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
+                                :WaitForChild("SellTool"):InvokeServer()
+                        end)
+                        task.wait(0.2)
                     end
                 end
             end)

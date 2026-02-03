@@ -28,8 +28,6 @@ local defaultSettings = {
     autoCollectRadioactive = false,
     autoSpin = false,
     spinDelay = 0.5,
-    antiAfk = false,
-    autoReconnect = false,
     autoUpgradeBase = false,
     autoUpgradeCarry = false,
     autoUpgradeSpeed = false,
@@ -227,14 +225,14 @@ if player.Character then
 end
 player.CharacterAdded:Connect(setupCharacter)
 
--- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout (single-file change)
+-- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout
 local function findRadioactiveRoot()
     -- primary: find the shared-instances container and locate the obby model inside it
     local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
     if rms then
         -- prefer a model that contains ObbyEnd or has 'Obby' in its name
         for _, d in ipairs(rms:GetDescendants()) do
-            if d:IsA("Model") and (d:FindFirstChild("ObbyEnd") or string.match(d.Name, "[Oo]bby")) then
+            if d:IsA("Model") and (d:FindFirstChild("ObbyEnd") or d.Name:lower():find("obby")) then
                 return d
             end
         end
@@ -254,50 +252,6 @@ local function findRadioactiveRoot()
 
     return nil
 end
-
-local function _handleObbyInteract(root)
-    if not root or not humanoidRootPart or not autoObby then return end
-    local obbyEnd = root:FindFirstChild("ObbyEnd")
-    if obbyEnd and humanoidRootPart then
-        pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 0) end)
-        task.wait()
-        pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 1) end)
-    end
-end
-
-local function watchRadioactiveAppearances()
-    -- immediate attempt for existing instances
-    task.spawn(function()
-        local root = findRadioactiveRoot()
-        if root and autoObby then _handleObbyInteract(root) end
-    end)
-
-    -- workspace-level watcher for containers that appear dynamically
-    workspace.ChildAdded:Connect(function(child)
-        if not autoObby then return end
-        if child.Name == "RadioactiveMap_SharedInstances" or child.Name == "Radioactive" then
-            task.delay(0.4, function()
-                local root = findRadioactiveRoot()
-                if root then _handleObbyInteract(root) end
-            end)
-        end
-    end)
-
-    -- also listen for obby models appearing under the new shared-instances container
-    local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
-    if rms then
-        rms.ChildAdded:Connect(function(child)
-            if not autoObby then return end
-            -- if a model with Obby appears, attempt interaction
-            if child:IsA("Model") and (child:FindFirstChild("ObbyEnd") or string.match(child.Name, "[Oo]bby")) then
-                task.delay(0.25, function() _handleObbyInteract(child) end)
-            end
-        end)
-    end
-end
-
--- start the watcher (non-blocking)
-watchRadioactiveAppearances()
 
 -- Find EventParts WITHOUT BLOCKING GUI
 task.spawn(function()
@@ -649,6 +603,74 @@ task.spawn(function()
     end
 end)
 
+-- Auto Complete Radioactive Obby Loop (fires 3x then waits 15 minutes)
+task.spawn(function()
+    while scriptRunning do
+        if autoObby then
+            -- First, wait until RadioactiveMap_SharedInstances appears
+            local radioactiveMap = nil
+            while autoObby and not radioactiveMap do
+                local root = findRadioactiveRoot()
+                if root then
+                    radioactiveMap = root
+                else
+                    task.wait(2) -- Check every 2 seconds
+                end
+            end
+            
+            -- If toggle was disabled while waiting, skip this cycle
+            if not autoObby then
+                task.wait(1)
+            else
+                -- Found the radioactive map
+                WindUI:Notify({ Title = "Radioactive Obby", Content = "Radioactive Event found! Starting...", Icon = "check", Duration = 2 })
+                
+                -- Run the obby completion sequence 3 times
+                for cycleCount = 1, 3 do
+                    if not autoObby then break end
+                    
+                    local completed = false
+                    pcall(function()
+                        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not rootPart then return end
+                        
+                        -- Re-check radioactiveMap exists
+                        local obbyRoot = findRadioactiveRoot()
+                        if not obbyRoot then return end
+                        
+                        -- Complete Obby
+                        local obbyEnd = obbyRoot:FindFirstChild("ObbyEnd")
+                        if obbyEnd and obbyEnd:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obbyEnd, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obbyEnd, 1)
+                            end)
+                        end
+                        
+                        completed = true
+                    end)
+                    
+                    -- Notify after each cycle
+                    if completed then
+                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon = "check", Duration = 2 })
+                    end
+                    
+                    if cycleCount < 3 then
+                        task.wait(2) -- Small delay between cycles
+                    end
+                end
+                
+                -- All 3 cycles complete, wait 15 minutes
+                WindUI:Notify({ Title = "Radioactive Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
+                task.wait(900) -- 15 minutes = 900 seconds
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+
 -- Auto Complete Money Obby Loop (fires 3x then waits 15 minutes)
 task.spawn(function()
     while scriptRunning do
@@ -739,7 +761,7 @@ task.spawn(function()
             end
             
                 -- All 3 cycles complete, wait 15 minutes
-                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
+                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done", Icon = "clock", Duration = 3 })
                 task.wait(900) -- 15 minutes = 900 seconds
             end
         else
@@ -809,53 +831,22 @@ task.spawn(function()
     end
 end)
 
--- Anti-AFK (toggleable)
-local antiAfkEnabled = savedSettings.antiAfk or false
-local antiAfkConn = nil
+-- Anti-AFK (Always Enabled - Prevents 20 min AFK kick)
 local vu = game:GetService("VirtualUser")
-local function enableAntiAfk()
-    if antiAfkConn then return end
-    antiAfkConn = player.Idled:Connect(function()
-        vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        task.wait(1)
-        vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-    end)
-end
-local function disableAntiAfk()
-    if antiAfkConn then
-        antiAfkConn:Disconnect()
-        antiAfkConn = nil
-    end
-end
-if antiAfkEnabled then
-    enableAntiAfk()
-end
+player.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
 
--- Auto Reconnect (toggleable)
-local autoReconnectEnabled = savedSettings.autoReconnect or false
-local autoReconnectConn = nil
-local function enableAutoReconnect()
-    if autoReconnectConn then return end
-    local success, conn = pcall(function()
-        return game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
-            if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
-                game:GetService("TeleportService"):Teleport(game.PlaceId, player)
-            end
-        end)
+-- Auto Reconnect (Always Enabled)
+pcall(function()
+    game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+        if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
+            game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+        end
     end)
-    if success and conn then
-        autoReconnectConn = conn
-    end
-end
-local function disableAutoReconnect()
-    if autoReconnectConn then
-        autoReconnectConn:Disconnect()
-        autoReconnectConn = nil
-    end
-end
-if autoReconnectEnabled then
-    enableAutoReconnect()
-end
+end)
 
 -- Unlock Zoom handlers
 local function enableUnlockZoom()
@@ -1809,7 +1800,7 @@ RadioactiveSection:Space()
 -- Auto Obby
 RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
-    Desc = "Automatically completes the obby",
+    Desc = "Auto complete obby 3x then wait 15min",
     Value = savedSettings.autoObby,
     Callback = function(state)
         autoObby = state
@@ -1969,39 +1960,23 @@ local MiscSettings = MiscTab:Section({
     Opened = true,
 })
 
--- Anti-AFK
-MiscSettings:Toggle({
-    Title = "Anti-AFK",
-    Desc = "Prevents Roblox from kicking you after 20 minutes of inactivity",
-    Value = savedSettings.antiAfk,
-    Callback = function(state)
-        antiAfkEnabled = state
-        savedSettings.antiAfk = state
-        saveSettings(savedSettings)
-        if state then
-            enableAntiAfk()
-        else
-            disableAntiAfk()
-        end
+-- Anti-AFK (Always On)
+MiscSettings:Button({
+    Title = "Anti-AFK (Always On)",
+    Desc = "Prevents AFK kick - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Anti-AFK is always enabled", Icon = "info", Duration = 2 })
     end
 })
 
 MiscSettings:Space()
 
--- Auto Reconnect
-MiscSettings:Toggle({
-    Title = "Auto Reconnect",
-    Desc = "Automatically rejoins the game when you get disconnected",
-    Value = savedSettings.autoReconnect,
-    Callback = function(state)
-        autoReconnectEnabled = state
-        savedSettings.autoReconnect = state
-        saveSettings(savedSettings)
-        if state then
-            enableAutoReconnect()
-        else
-            disableAutoReconnect()
-        end
+-- Auto Reconnect (Always On)
+MiscSettings:Button({
+    Title = "Auto Reconnect (Always On)",
+    Desc = "Auto rejoin on disconnect - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Auto Reconnect is always enabled", Icon = "info", Duration = 2 })
     end
 })
 
@@ -2142,42 +2117,23 @@ task.spawn(function()
 
     -- Apply God Mode
     if savedSettings.godMode then
-        godModeEnabled = true
         enableGodMode()
     end
 
     -- Apply Unlock Zoom
     if savedSettings.unlockZoom then
-        unlockZoomEnabled = true
         enableUnlockZoom()
-    else
-        unlockZoomEnabled = false
-        disableUnlockZoom()
-    end
-
-    -- Apply Anti-AFK
-    if savedSettings.antiAfk then
-        antiAfkEnabled = true
-        enableAntiAfk()
-    else
-        antiAfkEnabled = false
-        disableAntiAfk()
-    end
-
-    -- Apply Auto Reconnect
-    if savedSettings.autoReconnect then
-        autoReconnectEnabled = true
-        enableAutoReconnect()
-    else
-        autoReconnectEnabled = false
-        disableAutoReconnect()
     end
 
     -- Apply Tsunami Tracker
     if savedSettings.autoTsunamiTracker then
         enableTsunamiTracker()
-    else
-        disableTsunamiTracker()
+    end
+    
+    -- Apply Wider Hitbox
+    if savedSettings.hitboxEnabled then
+        widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
+        startWiderHitbox()
     end
 end)
 
